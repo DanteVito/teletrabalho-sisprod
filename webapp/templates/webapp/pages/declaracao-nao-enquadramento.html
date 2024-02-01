@@ -1,0 +1,21 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2>Declaração de Não Enquadramento nas Vedações Legais</h2>
+
+
+<h3>Declarações Cadastradas</h3>
+
+
+<ul>
+    {% for declaracao in declaracoes %}
+    <li>{{ declaracao }} - <a href="{% url 'webapp:declaracao_nao_enquadramento_edit' declaracao.pk %}">editar</a> - <a href={% url 'webapp:declaracao_nao_enquadramento_delete' declaracao.pk %}>excluir</a></li>    
+    {% endfor %}
+</ul>
+
+<h3>Cadastrar nova Declaração <a href="{% url 'webapp:declaracao_nao_enquadramento_create' %}">[+]</a></h3>
+
+{% endblock%}

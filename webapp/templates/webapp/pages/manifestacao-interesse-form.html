@@ -1,0 +1,26 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+{% if tipo_form == 'create' %}
+
+<h2>Criar Nova Manifestacão de Interesse</h2>
+
+{% elif tipo_form == 'edit' %}
+
+<h2>Editar Nova Manifestacão de Interesse</h2>
+
+{{ request.user.name }}
+
+{% endif %}
+
+<form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="SALVAR">
+
+</form>
+
+{% endblock%}

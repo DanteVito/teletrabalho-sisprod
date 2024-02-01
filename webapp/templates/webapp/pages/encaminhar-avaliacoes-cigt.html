@@ -1,0 +1,14 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2>Avaliações Encaminhadas</h2>
+<ul>
+    {% for avaliacao in avaliacoes_encaminhadas %}
+        <li>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}/{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }} - {{ avaliacao }}</li>    
+    {% endfor %}
+</ul>
+
+{% endblock%}

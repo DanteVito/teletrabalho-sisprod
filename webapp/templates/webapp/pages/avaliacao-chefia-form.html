@@ -1,0 +1,17 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2>Avaliação Chefia Imediata</h2>
+<ul>
+    {{ avaliacao }} - {{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}/{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }}
+    <form method='POST'>
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="SALVAR">
+    </form>
+</ul>
+
+{% endblock%}

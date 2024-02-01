@@ -1,0 +1,21 @@
+<ul>
+    <li><a href="{% url 'webapp:home' %}">SISCOT</a></li>
+    <li><a href="{% url 'webapp:servidor' %}">SERVIDOR</a></li>
+    {% if 'CHEFIAS' in request.user.get_group_set %}
+        <li><a href="{% url 'webapp:chefia_imediata' %}">CHEFIA IMEDIATA</a></li>
+    {% endif %}
+    {% if 'GABINETE' in request.user.get_group_set %}
+        <li><a href="{% url 'webapp:gabinete' %}">GABINETE</a></li>
+    {% endif %}
+    {% if 'CIGT' in request.user.get_group_set %}
+    <li><a href="{% url 'webapp:cigt' %}">CIGT</a></li>
+    {% endif %}
+</ul>
+
+<div>
+    username: {{ request.user.username }} 
+</div>
+
+<div>
+    <a href="{% url 'authentication:logout_view' %}">logout</a>
+</div>

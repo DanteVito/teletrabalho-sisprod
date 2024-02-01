@@ -1,0 +1,15 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2>Protocolos Autorização Teletrabalho</h2>
+
+<ul>
+    {% for protocolo in protocolos %}
+        <li><a href="{% url 'webapp:protocolo_autorizacao_teletrabalho_edit' protocolo.pk %}">{{ protocolo }}</a> - {{ protocolo.sid }} - {{ protocolo.publicado_doe }}</li>
+    {% endfor %}
+</ul>
+
+{% endblock%}

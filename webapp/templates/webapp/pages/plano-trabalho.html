@@ -1,0 +1,21 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2>Plano de Trabalho</h2>
+
+
+<h3>Planos de Trabalho Cadastrados</h3>
+
+
+<ul>
+    {% for plano_trabalho in planos_trabalho %}
+    <li>{{ plano_trabalho }} - <a href="{% url 'webapp:plano_trabalho_edit' plano_trabalho.pk %}">editar</a> - <a href={% url 'webapp:plano_trabalho_delete' plano_trabalho.pk %}>excluir</a></li>    
+    {% endfor %}
+</ul>
+
+<h3>Cadastrar novo Plano de Trabalho <a href="{% url 'webapp:plano_trabalho_create' %}">[+]</a></h3>
+
+{% endblock%}

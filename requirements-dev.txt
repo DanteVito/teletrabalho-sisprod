@@ -1,0 +1,13 @@
+django
+django-extensions
+python-decouple
+docxtpl
+prettytable
+gunicorn
+unidecode
+flake8
+mypy
+psycopg2
+pytest
+ipython
+ipdb

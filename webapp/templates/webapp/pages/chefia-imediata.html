@@ -1,0 +1,97 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2>Chefia Imediata</h2>
+
+<h3>Minhas Manifestações</h3>
+<ul>
+    {% for manifestacao in manifestacoes_servidor %}
+        {% if not manifestacao.aprovado_chefia %}
+            <li><a href={% url 'webapp:manifestacao_interesse_edit' manifestacao.pk %}>{{ manifestacao }}</a> [{{ manifestacao.aprovado_chefia }}]</li>
+        {% endif %}
+    {% endfor %}
+</ul>
+
+<h3>Aprovação Manifestações de Interesse - Chefia Imediata</h3>
+
+<h4>Pendentes</h4>
+<ul>
+    {% for manifestacao in manifestacoes_subordinados %}
+        {% if not manifestacao.aprovado_chefia %}
+            <li><a href={% url 'webapp:manifestacao_interesse_aprovado_chefia' manifestacao.pk %}>{{ manifestacao }}</a> [{{ manifestacao.aprovado_chefia }}]</li>
+        {% endif %}
+    {% endfor %}
+</ul>
+
+<h4>Aprovadas</h4>
+
+<ul>
+    {% for manifestacao in manifestacoes_subordinados %}
+        {% if manifestacao.aprovado_chefia == 'aprovado' %}
+            <li><a href={% url 'webapp:manifestacao_interesse_aprovado_chefia' manifestacao.pk %}>{{ manifestacao }}</a> [{{ manifestacao.aprovado_chefia }}]</li>
+        {% endif %}
+    {% endfor %}
+</ul>
+
+<h4>Reprovadas</h4>
+
+<ul>
+    {% for manifestacao in manifestacoes_subordinados %}
+        {% if manifestacao.aprovado_chefia == 'reprovado' %}
+            <li><a href={% url 'webapp:manifestacao_interesse_aprovado_chefia' manifestacao.pk %}>{{ manifestacao }}</a> [{{ manifestacao.aprovado_chefia }}]</li>
+        {% endif %}
+    {% endfor %}
+</ul>
+
+<h3>Aprovação Planos de Trabalho - Chefia Imediata </h3>
+
+<h4>Pendentes Chefia Imediata</h4>
+<ul>
+    {% for plano_trabalho in planos_trabalho_subordinados %}
+        {% if not plano_trabalho.aprovado_chefia %}
+            <li><a href={% url 'webapp:plano_trabalho_aprovado_chefia' plano_trabalho.pk %}>{{ plano_trabalho }}</a> [{{ plano_trabalho.aprovado_cigt }}]</li>
+        {% endif %}
+    {% endfor %}
+</ul>
+<h4>Pendentes CIGT</h4>
+<ul>
+    {% for plano_trabalho in planos_trabalho_subordinados %}
+        {% if plano_trabalho.aprovado_chefia %}
+            {% if not plano_trabalho.aprovado_cigt %}
+            <li><a href={% url 'webapp:plano_trabalho_aprovado_chefia' plano_trabalho.pk %}>{{ plano_trabalho }}</a> [{{ plano_trabalho.aprovado_cigt }}]</li>
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+</ul>
+<h4>Aprovados - Chefia e CIGT</h4>
+<ul>
+    {% for plano_trabalho in planos_trabalho_subordinados %}
+        {% if plano_trabalho.aprovado_chefia %}
+            {% if plano_trabalho.aprovado_cigt %}
+            <li><a href={% url 'webapp:plano_trabalho_aprovado_chefia' plano_trabalho.pk %}>{{ plano_trabalho }}</a> [{{ plano_trabalho.aprovado_cigt }}]</li>
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+</ul>
+<h4>Reprovados - Chefia Imediata</h4>
+<ul>
+    {% for plano_trabalho in planos_trabalho_subordinados %}
+        {% if plano_trabalho.aprovado_chefia == 'reprovado' %}
+        <li><a href={% url 'webapp:plano_trabalho_aprovado_chefia' plano_trabalho.pk %}>{{ plano_trabalho }}</a> [{{ plano_trabalho.aprovado_cigt }}]</li>
+        {% endif %}
+    {% endfor %}
+</ul>
+<h4>Reprovados - CIGT</h4>
+<ul>
+    {% for plano_trabalho in planos_trabalho_subordinados %}
+        {% if plano_trabalho.aprovado_cigt == 'reprovado' %}
+        <li><a href={% url 'webapp:plano_trabalho_aprovado_chefia' plano_trabalho.pk %}>{{ plano_trabalho }}</a> [{{ plano_trabalho.aprovado_cigt }}]</li>
+        {% endif %}
+    {% endfor %}
+</ul>
+
+<h4><a href="{% url 'webapp:avaliacoes_chefia' %}">Avaliações Chefia Imediata</a></h4>
+{% endblock%}

@@ -1,0 +1,69 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2>CIGT</h2>
+
+<h3>Aprovação Planos de Trabalho - CIGT </h3>
+<h4>Pendentes CIGT</h4>
+<ul>
+    {% for plano_trabalho in planos_trabalho %}
+        {% if plano_trabalho.aprovado_chefia == 'aprovado' %}
+            {% if not plano_trabalho.aprovado_cigt %}
+                <li><a href={% url 'webapp:plano_trabalho_aprovado_cigt' plano_trabalho.pk %}>{{ plano_trabalho }}</a> [{{ plano_trabalho.aprovado_cigt }}]</li>
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+</ul>
+<h4>Aprovados CIGT</h4>
+<ul>
+    {% for plano_trabalho in planos_trabalho %}
+        {% if plano_trabalho.aprovado_chefia %}
+            {% if plano_trabalho.aprovado_cigt %}
+            <li><a href={% url 'webapp:plano_trabalho_aprovado_cigt' plano_trabalho.pk %}>{{ plano_trabalho }}</a> [{{ plano_trabalho.aprovado_cigt }}]</li>
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+</ul>
+<h4>Pendentes com a Chefia Imediata</h4>
+<ul>
+    {% for plano_trabalho in planos_trabalho %}
+        {% if not plano_trabalho.aprovado_chefia %}
+        <li><a href={% url 'webapp:plano_trabalho_aprovado_cigt' plano_trabalho.pk %}>{{ plano_trabalho }}</a> [{{ plano_trabalho.aprovado_cigt }}]</li>
+        {% endif %}
+    {% endfor %}
+</ul>
+
+<h4>Reprovados pela Chefia Imediata</h4>
+<ul>
+    {% for plano_trabalho in planos_trabalho %}
+        {% if plano_trabalho.aprovado_chefia == 'reprovado' %}
+        <li><a href={% url 'webapp:plano_trabalho_aprovado_cigt' plano_trabalho.pk %}>{{ plano_trabalho }}</a> [{{ plano_trabalho.aprovado_cigt }}]</li>
+        {% endif %}
+    {% endfor %}
+</ul>
+
+
+<h3>Protocolo Autorização Teletrabalho</h3>
+
+<ul>
+    {% for protocolo in protocolos_autorizacao_teletrabalho %}
+        <li><a href="{% url 'webapp:protocolo_autorizacao_teletrabalho_edit' protocolo.pk %}">{{ protocolo }}</a> - {{ protocolo.sid }} - {{ protocolo.publicado_doe }}</li>
+    {% endfor %}
+</ul>
+
+<h3>Avaliações Mensais</h3>
+<ul>
+    <li><a href="{% url 'webapp:encaminhar_avaliacoes_cigt' %}">Encaminhar Avaliações</a></li>
+    <li><a href="{% url 'webapp:verificar_retorno_avaliacoes_cigt' %}">Verificar Retorno das Avaliações</a></li>
+</ul>
+
+<h3>Portarias DOE</h3>
+<ul>
+    <li><a href="{% url "webapp:gerar_portaria_doe" 0 %}">Download Portaria DOE</a></li>
+    <li><a href="{% url "webapp:gerar_portaria_doe" 1 %}">Download Portaria DOE - PUBLICA DOE</a></li>
+</ul>
+
+{% endblock%}

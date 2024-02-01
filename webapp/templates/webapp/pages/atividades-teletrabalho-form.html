@@ -1,0 +1,23 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2>Atividades Teletrabalho</h2>
+
+{{ request.user.name }}
+
+<form method="POST">
+    {% csrf_token %}
+    {{ formset.management_form }}
+    {% for form in formset %}
+        {{ form.as_p }}
+        <hr>
+    {% endfor %}
+    
+    <input type="submit" value="SALVAR">
+
+</form>
+
+{% endblock%}

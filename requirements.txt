@@ -1,0 +1,7 @@
+django
+django-extensions
+python-decouple
+docxtpl
+prettytable
+gunicorn
+unidecode

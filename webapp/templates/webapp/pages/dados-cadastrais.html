@@ -1,0 +1,26 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2>Dados Cadastrais</h2>
+
+NOME: {{ request.user.nome}}
+
+CPF: {{ request.user.username}}
+
+RG: {{ request.user.rg}}
+
+CARGO: {{ request.user.cargo}}
+
+<form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Atualizar">
+
+</form>
+Grupos:
+{% for group in user_groups %}{{ group.name }} | {% endfor %}
+
+{% endblock%}

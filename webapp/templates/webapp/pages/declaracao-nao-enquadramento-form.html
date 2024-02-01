@@ -1,0 +1,24 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+{% if tipo_form == 'create' %}
+
+<h2>Criar Nova Declaração de Não Enquadramento nas Vedações Legais</h2>
+
+{% elif tipo_form == 'edit' %}
+
+<h2>Editar Declaração de Não Enquadramento nas Vedações Legais</h2>
+
+{% endif %}
+
+<form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="SALVAR">
+
+</form>
+
+{% endblock%}

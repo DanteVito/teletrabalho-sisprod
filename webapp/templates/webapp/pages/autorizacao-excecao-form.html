@@ -1,0 +1,17 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2>Autorização Exceção - Teletrabalho - Cargo Chefia ou Direção</h2>
+
+
+<form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Atualizar">
+
+</form>
+
+{% endblock%}

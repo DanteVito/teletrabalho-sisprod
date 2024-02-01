@@ -1,0 +1,20 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2>Aprovar Plano de Trabalho - CIGT</h2>
+
+<h3>{{ plano_trabalho }}</h3>
+
+{{ form_instance.as_p }}
+
+<form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="SALVAR">
+
+</form>
+
+{% endblock%}

@@ -1,0 +1,27 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2>Servidor</h2>
+
+{% if check_cadastro %}
+<h3>Dados cadastrais faltantes:</h3>
+<ul>
+    {% for dado in check_cadastro %} 
+        <li>{{ dado }}</li>
+    {% endfor %}
+</ul>
+<a href="{% url 'webapp:dados_cadastrais' %}">Atualize seu cadastro!</a>
+{% endif %}
+
+<ol>
+    <li><a href="{% url 'webapp:dados_cadastrais' %}">Dados Cadastrais</a> {% if not check_cadastro %}[OK]{% else %}[OMISSO]{% endif %}</li>
+    <li><a href="{% url 'webapp:manifestacao_interesse' %}">Manifestação de Interesse</a> {% if last_manifestacao_interesse %}[OK]{% else %}[OMISSO]{% endif %}</li>
+    <li><a href="{% url 'webapp:declaracao_nao_enquadramento' %}">Declaração de Não Enquadramento nas Vedações</a> {% if last_declaracao_nao_enquadramento %}[OK]{% else %}[OMISSO]{% endif %}</li>
+    <li><a href="{% url 'webapp:plano_trabalho' %}">Plano de Trabalho</a> {% if last_plano_trabalho %}[OK]{% else %}[OMISSO]{% endif %}</li>
+</ol>
+
+
+{% endblock%}

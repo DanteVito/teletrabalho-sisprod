@@ -1,0 +1,21 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2>Manifestacação de Interesse </h2>
+
+
+<h3>Manifestações Cadastradas</h3>
+
+<ul>
+    {% for manifestacao in manifestacoes_servidor %}
+    <li>{{ manifestacao }} - <a href="{% url 'webapp:manifestacao_interesse_edit' manifestacao.pk %}">editar</a> - <a href={% url 'webapp:manifestacao_interesse_delete' manifestacao.pk %}>excluir</a></li>    
+    {% endfor%}
+</ul>
+
+<h3>Cadastrar nova manifestação <a href="{% url 'webapp:manifestacao_interesse_create' %}">[+]</a></h3>
+
+
+{% endblock %}

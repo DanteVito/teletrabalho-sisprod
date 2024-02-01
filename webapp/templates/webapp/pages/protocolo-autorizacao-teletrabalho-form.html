@@ -1,0 +1,16 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2>Protocolo de Autorização do Teletrabalho</h2>
+
+<form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="SALVAR">
+
+</form>
+
+{% endblock%}

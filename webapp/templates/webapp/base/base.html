@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    
+<head>
+    {% include 'webapp/partials/head.html'%}
+    <title>SISCOT - Sistema de Controle do Teletrabalho - REPR/CIGT | {% block title %}{% endblock %}</title>
+</head>
+
+<body>
+    {% include  'webapp/partials/header.html' %}
+  
+    <section class="section">
+        <div class="container">
+
+            {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% block content %}
+            {% endblock %}
+        </div>
+    </section>
+   
+    
+    {% include 'webapp/partials/footer.html' %}
+    
+    <script>
+    </script>
+
+</body>
+
+</html>
