@@ -20,7 +20,7 @@
 <h4>Aprovados</h4>
 
 {% for autorizacao in autorizacoes %}
-    {% if autorizacao.aprovado_gabinete %}
+    {% if autorizacao.aprovado_gabinete == 'aprovado' %}
         <li>{{ autorizacao }} - [{{ autorizacao.aprovado_gabinete }}] - <a href="{% url 'webapp:autorizacao_excecao_edit' autorizacao.pk %}">editar</a> - <a href={% url 'webapp:autorizacao_excecao_delete' autorizacao.pk %}>excluir</a></li>        
     {% endif %}
 {% endfor %}

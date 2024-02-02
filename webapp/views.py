@@ -66,9 +66,10 @@ def manifestacao_interesse(request):
 
 @login_required
 def manifestacao_interesse_create(request):
-    form = ManifestacaoInteresseForm()
+    form = ManifestacaoInteresseForm(user=request.user)
     if request.method == 'POST':
-        form = ManifestacaoInteresseForm(request.POST)
+        form = ManifestacaoInteresseForm(request.POST, user=request.user)
+
         if form.is_valid():
             obj = form.save(commit=False)
             obj.servidor = request.user
@@ -96,9 +97,11 @@ def manifestacao_interesse_edit(request, pk):
     except ManifestacaoInteresse.DoesNotExist:
         return HttpResponseBadRequest("")
 
-    form = ManifestacaoInteresseForm(instance=instance)
+    form = ManifestacaoInteresseForm(instance=instance, user=request.user)
+
     if request.method == 'POST':
-        form = ManifestacaoInteresseForm(request.POST, instance=instance)
+        form = ManifestacaoInteresseForm(
+            request.POST, instance=instance, user=request.user)
         if form.is_valid():
             obj = form.save(commit=False)
             obj.servidor = request.user
@@ -125,8 +128,13 @@ def manifestacao_interesse_aprovado_chefia(request, pk):
     except ManifestacaoInteresse.DoesNotExist:
         return HttpResponseBadRequest("proibido")
 
-    form_instance = ManifestacaoInteresseForm(instance=manifestacao)
-    form = ManifestacaoInteresseAprovadoChefiaForm(instance=manifestacao)
+    servidor = manifestacao.servidor
+    form_instance = ManifestacaoInteresseForm(
+        instance=manifestacao, user=servidor)
+
+    form = ManifestacaoInteresseAprovadoChefiaForm(
+        instance=manifestacao)
+
     if request.method == 'POST':
         form = ManifestacaoInteresseAprovadoChefiaForm(
             request.POST, instance=manifestacao)
@@ -178,11 +186,17 @@ def declaracao_nao_enquadramento(request):
 
 @login_required
 def declaracao_nao_enquadramento_create(request):
-    form = DeclaracaoNaoEnquadramentoVedacoesForm()
+    form = DeclaracaoNaoEnquadramentoVedacoesForm(user=request.user)
     if request.method == 'POST':
-        form = DeclaracaoNaoEnquadramentoVedacoesForm(request.POST)
+        form = DeclaracaoNaoEnquadramentoVedacoesForm(
+            request.POST, user=request.user)
         if form.is_valid():
             obj = form.save(commit=False)
+            manifestacao = form.cleaned_data['manifestacao']
+            # garante que apenas manifestações de interesse do próprio
+            # usuário possam ser utilizadas
+            if not manifestacao in ManifestacaoInteresse.objects.filter(servidor=request.user):
+                return HttpResponseBadRequest("not allowed")
             obj.adicionado_por = request.user
             obj.modificado_por = request.user
             obj.modelo = ModeloDocumento.objects.get(
@@ -208,10 +222,11 @@ def declaracao_nao_enquadramento_edit(request, pk):
     except DeclaracaoNaoEnquadramentoVedacoes.DoesNotExist:
         return HttpResponseBadRequest()
 
-    form = DeclaracaoNaoEnquadramentoVedacoesForm(instance=instance)
+    form = DeclaracaoNaoEnquadramentoVedacoesForm(
+        instance=instance, user=request.user)
     if request.method == 'POST':
         form = DeclaracaoNaoEnquadramentoVedacoesForm(
-            request.POST, instance=instance)
+            request.POST, instance=instance, user=request.user)
         if form.is_valid():
             obj = form.save(commit=False)
             obj.modificado_por = request.user
@@ -228,6 +243,8 @@ def declaracao_nao_enquadramento_edit(request, pk):
 
 @login_required
 def declaracao_nao_enquadramento_delete(request, pk):
+    # garante que apenas o próprio usuário possa
+    # deletar a declaração que ele criou.
     try:
         instance = DeclaracaoNaoEnquadramentoVedacoes.objects.get(
             pk=pk, manifestacao__servidor=request.user)
@@ -260,7 +277,11 @@ def plano_trabalho(request):
 
 @login_required
 def plano_trabalho_create(request):
-    form = PlanoTrabalhoForm()
+    # escrever validações para garantir que apenas o próprio
+    # usuário possa cadastrar um plano de trabalho para ele mesmo,
+    # assim como a sua chefia imediata
+
+    form = PlanoTrabalhoForm(user=request.user)
     PeriodoTeletrabalhoFormSet = inlineformset_factory(
         PlanoTrabalho, PeriodoTeletrabalho, fields=("data_inicio", "data_fim")
     )
@@ -271,9 +292,10 @@ def plano_trabalho_create(request):
     )
     atividades_formset = AtividadesTeletrabalhoFormSet()
     if request.method == 'POST':
-        form = PlanoTrabalhoForm(request.POST)
+        form = PlanoTrabalhoForm(request.POST, user=request.user)
         if form.is_valid():
             obj = form.save(commit=False)
+            obj.servidor = request.user
             obj.adicionado_por = request.user
             obj.modificado_por = request.user
             obj.modelo = ModeloDocumento.objects.get(
@@ -308,17 +330,24 @@ def plano_trabalho_create(request):
 
 @login_required
 def plano_trabalho_edit(request, pk):
+    # garante que apenas o próprio usuário
+    # possa alterar o plano de trabalho que ele cadastrou
+    # posteriormente expandir para autorizar a chefia
+    # imediata
+
     try:
         instance = PlanoTrabalho.objects.get(
-            pk=pk)
+            pk=pk, manifestacao__servidor=request.user)
     except PlanoTrabalho.DoesNotExist:
-        return HttpResponseBadRequest()
+        return HttpResponseBadRequest("not allowed")
 
     periodos_teletrabalho = PeriodoTeletrabalho.objects.filter(
         plano_trabalho=instance)
-    form = PlanoTrabalhoForm(instance=instance)
+    form = PlanoTrabalhoForm(
+        instance=instance, user=instance.manifestacao.servidor)
     if request.method == 'POST':
-        form = PlanoTrabalhoForm(request.POST, instance=instance)
+        form = PlanoTrabalhoForm(
+            request.POST, instance=instance, user=instance.manifestacao.servidor)
         if form.is_valid():
             obj = form.save(commit=False)
             obj.modificado_por = request.user
@@ -351,7 +380,8 @@ def plano_trabalho_aprovado_chefia(request, pk):
     except PlanoTrabalho.DoesNotExist:
         return HttpResponseBadRequest("proibido")
 
-    form_instance = PlanoTrabalhoForm(instance=plano_trabalho)
+    form_instance = PlanoTrabalhoForm(
+        instance=plano_trabalho, user=plano_trabalho.manifestacao.servidor)
     form = PlanoTrabalhoFormAprovadoChefiaForm(instance=plano_trabalho)
     if request.method == 'POST':
         form = PlanoTrabalhoFormAprovadoChefiaForm(
@@ -385,6 +415,9 @@ def plano_trabalho_aprovado_cigt(request, pk):
                 obj.modificado_por = request.user
                 obj.usuario_cigt_aprovacao = request.user
                 obj.save()
+                # eliminar o signals para criar os objetos após a
+                # aprovação da CIGT. fazer com que os objetos sejam
+                # criados aqui na view.
                 return redirect(reverse('webapp:cigt'))
         context = {
             'plano_trabalho': plano_trabalho,
@@ -397,6 +430,9 @@ def plano_trabalho_aprovado_cigt(request, pk):
 
 @login_required
 def plano_trabalho_delete(request, pk):
+    # escrever as validações para que apenas o próprio usuário e a chefia
+    # imediata possam deletar o plano de trabalho cadastrado por ambos.
+    # usar o messages.
     planos_trabalho = PlanoTrabalho.objects.all()
 
     context = {
@@ -527,8 +563,22 @@ def encaminhar_avaliacoes_cigt(request):
     # possam acessar a view
     if request.user.groups.filter(name='CIGT'):
         avaliacoes_encaminhadas = []
+        # reescrever o método encaminha_pedido_avaliacao como um classmethod
+        # que recebe como parâmetro o servidor e retorna um set com os períodos
+        # em que o servidor esteve em teletrabalho.
+        # retornar set para evitar mais de um encaminhamento se houver mais de um
+        # plano de trabalho no mesmo período.
+
+        # verificar se isso é problema:
+        # pensar sobre como fazer o controle para não enviar pedidos para servidores
+        # que não fizeram teletrabalho porque o plano foi alterado e também
+        # para servidores que não estão mais com o período vigente mas fizeram o
+        # teletrabalho em período pretérito. ideia: definir um campo de data para
+        # registrar se o servidor saiu do teletrabalho
         for protocolo_autorizacao in ProtocoloAutorizacaoTeletrabalho.objects.all():
             for avaliacao in protocolo_autorizacao.encaminha_pedido_avaliacao():
+                import ipdb
+                ipdb.set_trace()
                 avaliacoes_encaminhadas.append(avaliacao)
         context = {
             'avaliacoes_encaminhadas': avaliacoes_encaminhadas,
@@ -593,12 +643,16 @@ def servidor(request):
         manifestacao__servidor=request.user)
     last_plano_trabalho = PlanoTrabalho.objects.filter(
         manifestacao__servidor=request.user)
+    # verifica se existe pendencia de autorização para teletrabalho das chefias
+    autorizacoes_excecao_chefia = AutorizacoesExcecoes.objects.filter(
+        declaracao__manifestacao__servidor=request.user)
 
     context = {
         'check_cadastro': check_cadastro,
         'last_manifestacao_interesse': last_manifestacao_interesse,
         'last_declaracao_nao_enquadramento': last_declaracao_nao_enquadramento,
         'last_plano_trabalho': last_plano_trabalho,
+        'autorizacoes_excecao_chefia': autorizacoes_excecao_chefia,
     }
 
     return render(request, 'webapp/pages/servidor.html', context)
@@ -683,15 +737,16 @@ def gerar_portaria_doe(request, commit_doe):
         if commit_doe:
             obj = ProtocoloAutorizacaoTeletrabalho.generate_portaria_publicacao()
             if not obj:
-                return HttpResponseBadRequest("VERIFIQUE TODOS OS SIDS NOS PROTOCOLOS DE AUTORIZACAO")
-            obj.render_docx_tpl('portaria_repr')
+                # posteriormente separara as duas situações: em que falta o sid e em que não há modificação para publicar
+                return HttpResponseBadRequest("VERIFIQUE TODOS OS SIDS NOS PROTOCOLOS DE AUTORIZACAO | NÃO HÁ NENHUMA MODIFICAÇÃO")
+            obj.render_docx_tpl(tipo_doc='portaria_teletrabalho_doe')
         else:
             obj = PortariasPublicadasDOE.objects.last()
         try:
             if os.path.exists(obj.docx.path):
                 with open(obj.docx.path, 'rb') as fh:
                     response = HttpResponse(fh.read(), content_type='application/docx')  # noqa E501
-                    response['Content-Disposition'] = f'filename={obj.gerar_nome_arquivo("portaria_repr")}_{date.today()}.docx'  # noqa E501
+                    response['Content-Disposition'] = f'filename={obj.gerar_nome_arquivo("portaria_teletrabalho_doe")}'  # noqa E501
                     return response
         except ValueError:
             raise Exception('error generating docx file: associated docx not generated')  # noqa E501

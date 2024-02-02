@@ -1,3 +1,4 @@
+from django import forms
 from django.forms import ModelForm, inlineformset_factory
 
 from authentication.models import User
@@ -20,6 +21,17 @@ class UserForm(ModelForm):
 
 
 class ManifestacaoInteresseForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user')
+        super(ManifestacaoInteresseForm, self).__init__(*args, **kwargs)
+
+        self.fields['servidor'] = forms.ModelChoiceField(
+            queryset=User.objects.filter(id=self.user.id),
+            initial=User.objects.filter(
+                id=self.user.id).first(),
+            widget=forms.Select(),
+        )
+
     class Meta:
         model = ManifestacaoInteresse
         fields = (
@@ -43,6 +55,18 @@ class ManifestacaoInteresseAprovadoChefiaForm(ModelForm):
 
 
 class DeclaracaoNaoEnquadramentoVedacoesForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user')
+        super(DeclaracaoNaoEnquadramentoVedacoesForm,
+              self).__init__(*args, **kwargs)
+
+        self.fields['manifestacao'] = forms.ModelChoiceField(
+            queryset=ManifestacaoInteresse.objects.filter(servidor=self.user),
+            initial=ManifestacaoInteresse.objects.filter(
+                servidor=self.user).last(),
+            widget=forms.Select(),
+        )
+
     class Meta:
         model = DeclaracaoNaoEnquadramentoVedacoes
         fields = (
@@ -55,6 +79,18 @@ class DeclaracaoNaoEnquadramentoVedacoesForm(ModelForm):
 
 
 class PlanoTrabalhoForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user')
+        super(PlanoTrabalhoForm,
+              self).__init__(*args, **kwargs)
+
+        self.fields['manifestacao'] = forms.ModelChoiceField(
+            queryset=ManifestacaoInteresse.objects.filter(servidor=self.user),
+            initial=ManifestacaoInteresse.objects.filter(
+                servidor=self.user).last(),
+            widget=forms.Select(),
+        )
+
     class Meta:
         model = PlanoTrabalho
         fields = (

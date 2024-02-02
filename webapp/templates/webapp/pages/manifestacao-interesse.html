@@ -11,7 +11,7 @@
 
 <ul>
     {% for manifestacao in manifestacoes_servidor %}
-    <li>{{ manifestacao }} - <a href="{% url 'webapp:manifestacao_interesse_edit' manifestacao.pk %}">editar</a> - <a href={% url 'webapp:manifestacao_interesse_delete' manifestacao.pk %}>excluir</a></li>    
+    <li>{{ manifestacao }} - <a href="{% url 'webapp:manifestacao_interesse_edit' manifestacao.pk %}">editar</a> - <a href={% url 'webapp:manifestacao_interesse_delete' manifestacao.pk %}>excluir</a> - {% if manifestacao.aprovado_chefia == 'aprovado' %}[APROVADO: CHEFIA]{% elif manifestacao.aprovado_chefia == 'reprovado' %}[REPROVADO: CHEFIA]{% else %}[PENDENTE: CHEFIA]{% endif %}</li>    
     {% endfor%}
 </ul>
 

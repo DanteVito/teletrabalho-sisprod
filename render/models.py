@@ -152,6 +152,9 @@ class BaseModelMethods(models.Model):
             base_name = f'{tipo_doc} {nome_resumido}'  # noqa E501
         base_name = base_name.replace(' ', '_')
 
+        if tipo_doc == 'portaria_teletrabalho_doe':
+            base_name = f'{tipo_doc}_{date.today()}_id_{self.id}'
+
         if file_type == 'docx':
             return base_name + '.docx'
         else:
@@ -220,8 +223,8 @@ class BaseModelMethods(models.Model):
                 # verifica se já existe um arquivo com o mesmo nome na pasta
                 # de destino. Se existir, deleta o arquivo para gerar um novo
                 #  com o mesmo nome dentro desta pasta
-                if os.path.exists(os.path.join(path_root, filename)):
-                    os.remove(os.path.join(path_root, filename))
+                # if os.path.exists(os.path.join(path_root, filename)):
+                #    os.remove(os.path.join(path_root, filename))
 
                 # salva o arquivo no FileField
                 # path_file_save
@@ -431,7 +434,9 @@ class DeclaracaoNaoEnquadramentoVedacoes(BaseModelGeneral):
             raise ValidationError(
                 "Não é possível alterar a Declaração de Não Enquadramento\
                     enquanto houver um Pedido de Autorização da Direção pendente\
-                    para ocupante de cargo de chefia ou direção!")
+                    para ocupante de cargo de chefia ou direção!\
+                        Não é possível cadastrar nova Declaração se houver pendência\
+                            de aprovação do Gabinete para a declaração selecionada!")
         except ObjectDoesNotExist:
             ...
 
@@ -1229,6 +1234,7 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
 
         protocolos_json['protocolos_publicados'] = protocolos_publicados
         protocolos_json['controle_mensal_publicados'] = controle_mensal_publicados
+
         return protocolos_json
 
     @classmethod
@@ -1256,13 +1262,15 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
 
         modelo_docx = ModeloDocumento.objects.get(nome_modelo='PORTARIA DOE')
 
-        obj = PortariasPublicadasDOE.objects.create(
-            modelo=modelo_docx,
-            has_inclusoes=True if context['inclusoes'] else False,
-            has_exclusoes=True if context['exclusoes'] else False,
-        )
+        if inclusoes or exclusoes:
 
-        return obj
+            obj = PortariasPublicadasDOE.objects.create(
+                modelo=modelo_docx,
+                has_inclusoes=True if context['inclusoes'] else False,
+                has_exclusoes=True if context['exclusoes'] else False,
+            )
+
+            return obj
 
     def sid_format(self) -> str:
         """
@@ -1311,7 +1319,7 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
         for periodo in periodos_teletrabalho:
             # data avaliacao = 1 mes depois do periodo
             data_avaliacao = add_one_month(periodo)
-            if date.today() > data_avaliacao:
+            if date.today() >= data_avaliacao:
                 print(periodo, data_avaliacao)
                 ano_avaliacao = periodo.year
                 mes_avaliacao = periodo.month
@@ -1349,9 +1357,14 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
         avaliacoes_pendentes = []
         encaminhamentos_avaliacoes_cigt = DespachoEncaminhaAvaliacao.objects.filter(
             despacho_cigt=self.despacho_cigt)
+        print(
+            f'avaliações encaminhadas: {self.despacho_cigt} - {encaminhamentos_avaliacoes_cigt}')
         for encaminhamento_avaliacao in encaminhamentos_avaliacoes_cigt:
-            avaliacao = AvaliacaoChefia.objects.get(
-                encaminhamento_avaliacao_cigt=encaminhamento_avaliacao)
+
+            avaliacao = AvaliacaoChefia.objects.filter(
+                encaminhamento_avaliacao_cigt=encaminhamento_avaliacao).first()
+            print(
+                f'encaminhamento: {encaminhamento_avaliacao} - avaliação {avaliacao}')
             if not avaliacao.atestado_cumprimento_metas:
                 servidor = avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.servidor
                 mes_avaliacao = avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao
@@ -1974,6 +1987,7 @@ def cria_despacho_cigt_aprovacao_plano_trabalho_callback(sender, **kwargs):
                     modificado_por=instance.usuario_cigt_aprovacao,
                     numeracao=Numeracao.get_ultimo_numero()
                 )
+                # try except
                 if ComissaoInterna.objects.get(user=instance.modificado_por):
                     parecer.membro_cigt = ComissaoInterna.objects.get(
                         user=instance.modificado_por)
