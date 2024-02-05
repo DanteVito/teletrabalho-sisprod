@@ -1,6 +1,7 @@
 import calendar
 import os
 import string
+import typing
 from datetime import date, datetime, timedelta
 
 from django.conf import settings
@@ -562,7 +563,7 @@ class PlanoTrabalho(BaseModelGeneral):
                     "Não é possível fazer a Aprovação da CIGT antes da aprovação do Plano de Trabalho pela Chefia Imediata"
                 )
 
-    def get_lista_ano_mes_periodos_teletrabalho(self) -> list[date]:
+    def get_lista_ano_mes_periodos_teletrabalho(self) -> typing.List[date]:
         """
         Método que retorna uma lista com os períodos
         do teletrabalho, mês a mês.

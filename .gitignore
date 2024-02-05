@@ -10,7 +10,7 @@ gunicorn-error-log
 media/
 
 # static files
-static/
+#static/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

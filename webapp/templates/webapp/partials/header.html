@@ -1,21 +1,27 @@
-<ul>
-    <li><a href="{% url 'webapp:home' %}">SISCOT</a></li>
-    <li><a href="{% url 'webapp:servidor' %}">SERVIDOR</a></li>
-    {% if 'CHEFIAS' in request.user.get_group_set %}
-        <li><a href="{% url 'webapp:chefia_imediata' %}">CHEFIA IMEDIATA</a></li>
-    {% endif %}
-    {% if 'GABINETE' in request.user.get_group_set %}
-        <li><a href="{% url 'webapp:gabinete' %}">GABINETE</a></li>
-    {% endif %}
-    {% if 'CIGT' in request.user.get_group_set %}
-    <li><a href="{% url 'webapp:cigt' %}">CIGT</a></li>
-    {% endif %}
-</ul>
-
-<div>
-    username: {{ request.user.username }} 
-</div>
-
-<div>
-    <a href="{% url 'authentication:logout_view' %}">logout</a>
-</div>
+<header>
+    <div class="logo">
+        <a href="{% url 'webapp:home' %}">SISCOT</a>
+    </div>
+    <nav>
+        <ul class="nav__links">
+            <li><a href="{% url 'webapp:servidor' %}">SERVIDOR</a></li>
+            {% if 'CHEFIAS' in request.user.get_group_set %}
+                <li><a href="{% url 'webapp:chefia_imediata' %}">CHEFIA IMEDIATA</a></li>
+            {% endif %}
+            {% if 'GABINETE' in request.user.get_group_set %}
+                <li><a href="{% url 'webapp:gabinete' %}">GABINETE</a></li>
+            {% endif %}
+            {% if 'CIGT' in request.user.get_group_set %}
+                <li><a href="{% url 'webapp:cigt' %}">CIGT</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    <div class="nav__right">
+        <div class="nav__username">
+            Seja bem vindo, {{ request.user.nome }}
+        </div>
+        <div class="nav__logout">
+            <a href="{% url 'authentication:logout_view' %}"><button>SAIR</button></a>
+        </div>
+    </div>
+</header>
