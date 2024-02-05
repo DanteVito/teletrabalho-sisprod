@@ -1,6 +1,7 @@
 import calendar
 import os
 import string
+import typing
 from datetime import date, datetime, timedelta
 
 from django.conf import settings
@@ -562,7 +563,7 @@ class PlanoTrabalho(BaseModelGeneral):
                     "Não é possível fazer a Aprovação da CIGT antes da aprovação do Plano de Trabalho pela Chefia Imediata"
                 )
 
-    def get_lista_ano_mes_periodos_teletrabalho(self) -> list[date]:
+    def get_lista_ano_mes_periodos_teletrabalho(self) -> typing.List[date]:
         """
         Método que retorna uma lista com os períodos
         do teletrabalho, mês a mês.
@@ -659,6 +660,12 @@ class PlanoTrabalho(BaseModelGeneral):
 
 
 class AtividadesTeletrabalho(models.Model):
+    # ao inves de fazer uma chave para o plano de trabalho
+    # fazer uma chave para um período e deixar o período ligado ao plano de trabalho
+    # inserir os campos de avaliação na própria atividade
+    # desta forma, para cada período de um plano de trabalho
+    # podemos avaliar as atividades individualmente
+
     plano_trabalho = models.ForeignKey(PlanoTrabalho, related_name="%(app_label)s_%(class)s_plano_trabalho", on_delete=models.CASCADE)  # noqa E501
     atividade = models.ForeignKey(ListaAtividades, related_name="%(app_label)s_%(class)s_atividade", on_delete=models.SET_NULL, null=True, blank=True)  # noqa E501
     meta_qualitativa = models.CharField(max_length=255, default='---', null=True, blank=True)  # noqa E501
