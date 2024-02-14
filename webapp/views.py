@@ -287,8 +287,8 @@ def plano_trabalho_create(request):
     )
     periodos_formset = PeriodoTeletrabalhoFormSet()
     AtividadesTeletrabalhoFormSet = inlineformset_factory(
-        PlanoTrabalho, AtividadesTeletrabalho, fields=(
-            "atividade", "meta_qualitativa", "tipo_meta_quantitativa", "meta_quantitativa")
+        PeriodoTeletrabalho, AtividadesTeletrabalho, fields=(
+            "periodo", "atividade", "meta_qualitativa", "tipo_meta_quantitativa", "meta_quantitativa", "cumprimento", "justificativa_nao_cumprimento",)
     )
     atividades_formset = AtividadesTeletrabalhoFormSet()
     if request.method == 'POST':
@@ -307,15 +307,20 @@ def plano_trabalho_create(request):
 
             form.save_m2m()
 
+            # associa todos os períodos ao plano de trabalho salvo
             periodos_formset = PeriodoTeletrabalhoFormSet(
                 request.POST, instance=obj)
             if periodos_formset.is_valid():
-                periodos_formset.save()
+                periodos_salvos = periodos_formset.save()
 
-            atividades_formset = AtividadesTeletrabalhoFormSet(
-                request.POST, instance=obj)
-            if atividades_formset.is_valid():
-                atividades_formset.save()
+            # associa todas as atividades a todos os períodos salvos
+
+            for obj in periodos_salvos:
+                atividades_formset = AtividadesTeletrabalhoFormSet(
+                    request.POST, instance=obj)
+                if atividades_formset.is_valid():
+                    atividades_formset.save()
+
             messages.info(request, "Plano de Trabalho cadastrado com sucesso!")
             return redirect(reverse('webapp:plano_trabalho'))
 
@@ -360,12 +365,18 @@ def plano_trabalho_edit(request, pk):
 
             messages.info(request, "Plano de Trabalho alterado com sucesso!")
             return redirect(reverse('webapp:plano_trabalho'))
+
+    periodos_teletrabalho = PeriodoTeletrabalho.objects.filter(
+        plano_trabalho=instance)
+    atividades_teletrabalho = AtividadesTeletrabalho.objects.filter(
+        periodo__in=periodos_teletrabalho)
+
     context = {
         'tipo_form': 'edit',
         'periodos_teletrabalho': periodos_teletrabalho,
         'form': form,
-        'periodos_teletrabalho': PeriodoTeletrabalho.objects.filter(plano_trabalho=instance),
-        'atividades_teletrabalho': AtividadesTeletrabalho.objects.filter(plano_trabalho=instance)
+        'periodos_teletrabalho': periodos_teletrabalho,
+        'atividades_teletrabalho': atividades_teletrabalho,
     }
     return render(request, 'webapp/pages/plano-trabalho-form.html', context)
 
@@ -495,8 +506,9 @@ def atividade_teletrabalho(request, pk):
 @login_required
 def atividade_teletrabalho_delete(request, pk):
     instance = AtividadesTeletrabalho.objects.get(pk=pk)
+    plano_trabalho_id = instance.periodo.plano_trabalho.id
     instance.delete()
-    return redirect(reverse('webapp:plano_trabalho_edit', kwargs={'pk': instance.plano_trabalho_id}))
+    return redirect(reverse('webapp:plano_trabalho_edit', kwargs={'pk': plano_trabalho_id}))
 
 
 @login_required

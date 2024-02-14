@@ -326,13 +326,19 @@ class AtividadesTeletrabalhoInline(admin.TabularInline):
               'tipo_meta_quantitativa', 'meta_quantitativa', )
 
 
+class PeriodoTeletrabalhoAdmin(admin.ModelAdmin):
+    list_display = ('plano_trabalho', 'data_inicio', 'data_fim')
+    fields = ('plano_trabalho', 'data_inicio', 'data_fim')
+    inlines = (AtividadesTeletrabalhoInline, )
+
+
 class PeriodoTeletrabalhoInline(admin.TabularInline):
     model = PeriodoTeletrabalho
 
 
 class AtividadesTeletrabalhoAdmin(admin.ModelAdmin):
-    list_display = ('plano_trabalho', 'atividade', )
-    fields = ('plano_trabalho', 'atividade', 'meta_qualitativa', 'tipo_meta_quantitativa', 'meta_quantitativa')  # noqa E501
+    list_display = ('periodo', 'atividade', )
+    fields = ('periodo', 'atividade', 'meta_qualitativa', 'tipo_meta_quantitativa', 'meta_quantitativa', 'cumprimento', 'justificativa_nao_cumprimento')  # noqa E501
     readonly_fields = ()
     search_fields = ()
     autocomplete_fields = ('atividade', )
@@ -380,7 +386,7 @@ class PlanoTrabalhoAdmin(admin.ModelAdmin):
     actions = (generate_docx, )
     fields = ('manifestacao', 'data', 'periodo_comparecimento', 'periodo_acionamento', 'sistemas', 'aprovado_chefia', 'aprovado_cigt')  # noqa E501
     autocomplete_fields = ()
-    inlines = (AtividadesTeletrabalhoInline, PeriodoTeletrabalhoInline)
+    inlines = (PeriodoTeletrabalhoInline, )
 
     def save_model(self, request, obj, form, change):  # noqa E501
         modelo = ModeloDocumento.objects.get(nome_modelo="PLANO DE TRABALHO")  # noqa E501

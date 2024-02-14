@@ -131,11 +131,13 @@ class AtividadesTeletrabalhoForm(ModelForm):
     class Meta:
         model = AtividadesTeletrabalho
         fields = (
-            'plano_trabalho',
+            'periodo',
             'atividade',
             'meta_qualitativa',
             'tipo_meta_quantitativa',
-            'meta_quantitativa'
+            'meta_quantitativa',
+            'cumprimento',
+            'justificativa_nao_cumprimento'
         )
 
 
@@ -149,7 +151,7 @@ PeriodoTeletrabalhoFormSet = inlineformset_factory(
 
 
 AtividadesTeletrabalhoFormSet = inlineformset_factory(
-    PlanoTrabalho,
+    PeriodoTeletrabalho,
     AtividadesTeletrabalho,
     form=AtividadesTeletrabalhoForm,
     extra=1,

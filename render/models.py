@@ -659,27 +659,6 @@ class PlanoTrabalho(BaseModelGeneral):
         verbose_name_plural = 'Chefia | Planos de Trabalho'
 
 
-class AtividadesTeletrabalho(models.Model):
-    # ao inves de fazer uma chave para o plano de trabalho
-    # fazer uma chave para um período e deixar o período ligado ao plano de trabalho
-    # inserir os campos de avaliação na própria atividade
-    # desta forma, para cada período de um plano de trabalho
-    # podemos avaliar as atividades individualmente
-
-    plano_trabalho = models.ForeignKey(PlanoTrabalho, related_name="%(app_label)s_%(class)s_plano_trabalho", on_delete=models.CASCADE)  # noqa E501
-    atividade = models.ForeignKey(ListaAtividades, related_name="%(app_label)s_%(class)s_atividade", on_delete=models.SET_NULL, null=True, blank=True)  # noqa E501
-    meta_qualitativa = models.CharField(max_length=255, default='---', null=True, blank=True)  # noqa E501
-    tipo_meta_quantitativa = models.ForeignKey(ListaIndicadoresMetricasTeletrabalho, related_name="%(app_label)s_%(class)s_metrica", on_delete=models.SET_NULL, null=True, blank=True)  # noqa E501
-    meta_quantitativa = models.CharField(max_length=255)
-
-    def __str__(self):
-        return self.atividade.atividade
-
-    class Meta:
-        verbose_name = 'Atividade Teletrabalho'
-        verbose_name_plural = 'Chefia | Atividades do Plano de Trabalho'
-
-
 class Numeracao(models.Model):
     """
     Classe para registro de eventuais shifts de numeração.
@@ -789,6 +768,34 @@ class PeriodoTeletrabalho(models.Model):
     class Meta:
         verbose_name = 'Período Teletrabalho'
         verbose_name_plural = 'Admin | Períodos Teletrabalho'
+
+
+class AtividadesTeletrabalho(models.Model):
+    # ao inves de fazer uma chave para o plano de trabalho
+    # fazer uma chave para um período e deixar o período ligado ao plano de trabalho
+    # inserir os campos de avaliação na própria atividade
+    # desta forma, para cada período de um plano de trabalho
+    # podemos avaliar as atividades individualmente
+    _CHOICES = (
+        ('cumprida', 'Cumprida'),
+        ('parcialmente_cumprida', 'Parcialmente Cumprida'),
+        ('nao_executada', 'Não Cumprida'),
+    )
+    periodo = models.ForeignKey(PeriodoTeletrabalho, related_name="%(app_label)s_%(class)s_periodo", on_delete=models.CASCADE)  # noqa E501
+    atividade = models.ForeignKey(ListaAtividades, related_name="%(app_label)s_%(class)s_atividade", on_delete=models.SET_NULL, null=True, blank=True)  # noqa E501
+    meta_qualitativa = models.CharField(max_length=255, default='---', null=True, blank=True)  # noqa E501
+    tipo_meta_quantitativa = models.ForeignKey(ListaIndicadoresMetricasTeletrabalho, related_name="%(app_label)s_%(class)s_metrica", on_delete=models.SET_NULL, null=True, blank=True)  # noqa E501
+    meta_quantitativa = models.CharField(max_length=255)
+    cumprimento = models.CharField(
+        max_length=36, choices=_CHOICES, blank=True, null=True)
+    justificativa_nao_cumprimento = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.atividade.atividade
+
+    class Meta:
+        verbose_name = 'Atividade Teletrabalho'
+        verbose_name_plural = 'Chefia | Atividades do Plano de Trabalho'
 
 
 class DespachoCIGTAbstract(BaseModelGeneral):
@@ -1703,6 +1710,10 @@ class DespachoEncaminhaAvaliacao(DespachoCIGTAbstract):
 
 
 class AvaliacaoChefia(BaseModelGeneral):
+    # Criar um método (provavelmente em aqui ou em ProtocoloAutorizacaoTeletrabalho) que verifique as avaliacoes das atividades
+    # por periodo. se todas estiverem cumpridas -> cumprimento integral, se alguma nao estiver cumprida -> cumprimento parcial,
+    # se todas estiverem descumpidas -> nao cumprimento.
+
     _CUMPRIMENTO_METAS = (
         ('1', 'Atesto que o servidor cumpriu integralmente todas as metas e/ou condições o Plano de Trabalho'),  # noqa E501
         ('2', 'Atesto que o servidor cumpriu as metas e/ou condições o Plano de Trabalho parcialmente'),  # noqa E501
