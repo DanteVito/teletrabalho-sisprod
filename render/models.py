@@ -2,7 +2,7 @@ import calendar
 import os
 import string
 import typing
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 
 from django.conf import settings
 from django.contrib.auth.models import Group
@@ -10,11 +10,10 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.files import File
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.db.models import ProtectedError, Q
+from django.db.models import Q
 from django.db.models.signals import (post_delete, post_save, pre_delete,
                                       pre_save)
 from django.dispatch import receiver
-from django.http import HttpResponse
 from django.utils import timezone
 from docxtpl import DocxTemplate
 from prettytable import PrettyTable
@@ -353,7 +352,7 @@ class ManifestacaoInteresse(BaseModelGeneral):
         choices=_APROVACAO, max_length=16, null=True, blank=True)
 
     def __str__(self) -> str:
-        return f'Manifestação de Interesse: {self.servidor} | {self.data_criacao.strftime("%d/%m/%Y")}'
+        return f'{self.id} - {self.servidor} | {self.data_criacao.strftime("%d/%m/%Y")}'
 
     @classmethod
     def get_manifestacoes_subordinados(cls, chefia_imediata):
@@ -460,10 +459,6 @@ class DeclaracaoNaoEnquadramentoVedacoes(BaseModelGeneral):
 
 
 class AutorizacoesExcecoes(BaseModelMethods):
-    #
-    # reescrever um modelo base para usar aqui com as funcoes basicas: data e geracao de docx, pdf, etc,
-    # criar um modelo mais simples que o BaseModelGeneral
-    #
     _APROVACAO = (
         ('aprovado', 'Aprovado'),
         ('reprovado', 'Reprovado'),
@@ -749,15 +744,39 @@ class PeriodoTeletrabalho(models.Model):
                              self.data_fim.month, last_day_of_month)
         return self
 
+    @classmethod
+    def month_normalize(cls):
+        """
+        Método que pega um período que começa em um dado mês e termina em
+        outro e salva um período para cada mês.
+        """
+        ...
+
+    def year_months_periodo(self):
+        """
+        Este método retorna uma lista com objetos datetime
+        para cada mês entre a data_inicio e data_fim do período.
+        """
+        year_months = list()
+        for month in range(self.data_inicio.month, self.data_fim.month + 1):
+            year_months.append(date(self.data_inicio.year, month, 1))
+        return year_months
+
     def clean(self):
         # normaliza o inicio e o fim do regime para o primeiro dia do primeiro mes
         # e último dia do último mês
         self.year_month_normalize()
 
         # verifica se a data_fim é maior que a data_inicio
-        if not self.data_fim > self.data_inicio:
-            raise ValidationError(
-                "A data final não pode ser anterior à data inicial!")
+        # if not self.data_fim > self.data_inicio:
+        #     raise ValidationError(
+        #         "A data final não pode ser anterior à data inicial!")
+
+        # # impede que o período seja maior do que um (1) mês
+        # if self.data_inicio.month != self.data_fim.month:
+        #     raise ValidationError(
+        #         "Não são permitidos períodos superiores a um mês!"
+        #     )
 
     # USAR EM PRODUÇÃO
     #    # Impede a criação de plano de trabalho com regime retroativo
@@ -771,11 +790,6 @@ class PeriodoTeletrabalho(models.Model):
 
 
 class AtividadesTeletrabalho(models.Model):
-    # ao inves de fazer uma chave para o plano de trabalho
-    # fazer uma chave para um período e deixar o período ligado ao plano de trabalho
-    # inserir os campos de avaliação na própria atividade
-    # desta forma, para cada período de um plano de trabalho
-    # podemos avaliar as atividades individualmente
     _CHOICES = (
         ('cumprida', 'Cumprida'),
         ('parcialmente_cumprida', 'Parcialmente Cumprida'),
@@ -792,6 +806,25 @@ class AtividadesTeletrabalho(models.Model):
 
     def __str__(self):
         return self.atividade.atividade
+
+    def get_avaliacao_chefia(self):
+        """
+        método que retorna o obj de AvaliacaoChefia associado
+        """
+        #
+        # esse método só pode ser executado depois do plano de trabalho
+        # ser aprovado pela CIGT, colocar uma validação aqui
+        #
+        try:
+            despacho_cigt_plano_trabalho = DespachoCIGTPlanoTrabalho.objects.get(
+                plano_trabalho=self.periodo.plano_trabalho)
+            return AvaliacaoChefia.objects.get(
+                encaminhamento_avaliacao_cigt__despacho_cigt=despacho_cigt_plano_trabalho,
+                encaminhamento_avaliacao_cigt__mes_avaliacao=self.periodo.data_inicio.month,
+                encaminhamento_avaliacao_cigt__ano_avaliacao=self.periodo.data_inicio.year,
+            )
+        except (DespachoCIGTPlanoTrabalho.DoesNotExist, AvaliacaoChefia.DoesNotExist):
+            return None
 
     class Meta:
         verbose_name = 'Atividade Teletrabalho'
@@ -818,7 +851,7 @@ class DespachoCIGTAbstract(BaseModelGeneral):
         abstract = True
 
 
-class ParecerCIGT(DespachoCIGTAbstract):
+class DespachoCIGTPlanoTrabalho(DespachoCIGTAbstract):
     """
     Modelo para geração dos pareceres a respeito dos planos
     de trabalho e avaliações das chefias, de competência da
@@ -857,7 +890,7 @@ class ParecerCIGT(DespachoCIGTAbstract):
         for periodo in periodos_plano:
             data_inicio = periodo.data_inicio
             data_fim = periodo.data_fim
-            qtd_meses_teletrabalho = ParecerCIGT.get_diff_months(
+            qtd_meses_teletrabalho = DespachoCIGTPlanoTrabalho.get_diff_months(
                 data_inicio, data_fim)
             if qtd_meses_teletrabalho > 0:
                 for _ in range(qtd_meses_teletrabalho + 1):
@@ -891,7 +924,7 @@ class ParecerCIGT(DespachoCIGTAbstract):
             table.field_names = ["SID", "RG", "NOME"]
             # pareceres = periodo.parecercigt_set.filter(deferido=True,
             #                                           publicado_doe=False).order_by('servidor')  # noqa E501
-            pareceres = ParecerCIGT.objects.filter(deferido=True,
+            pareceres = DespachoCIGTPlanoTrabalho.objects.filter(deferido=True,
                                                        publicado_doe=False).order_by('servidor')  # noqa E501
             for parecer in pareceres:
                 table.add_row([parecer.format_str_input('rg'), parecer.format_str_input('sid'), parecer.servidor.upper()])  # noqa E501
@@ -1048,7 +1081,7 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
         ('publicado', 'Publicado'),
         ('republicado', 'Republicado')
     )
-    despacho_cigt = models.ForeignKey(ParecerCIGT, related_name="%(app_label)s_%(class)s_despacho_cigt", on_delete=models.CASCADE)  # noqa E501)
+    despacho_cigt = models.ForeignKey(DespachoCIGTPlanoTrabalho, related_name="%(app_label)s_%(class)s_despacho_cigt", on_delete=models.CASCADE)  # noqa E501)
     sid = models.CharField(max_length=12, blank=True, null=True)
     publicado_doe = models.CharField(
         max_length=16, choices=_CHOICES, blank=True, null=True)
@@ -1075,7 +1108,7 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
         manifestacoes = ManifestacaoInteresse.objects.filter(servidor=servidor)
         planos_trabalho = PlanoTrabalho.objects.filter(
             manifestacao__in=manifestacoes)
-        pareceres_cigt = ParecerCIGT.objects.filter(
+        pareceres_cigt = DespachoCIGTPlanoTrabalho.objects.filter(
             plano_trabalho__in=planos_trabalho)
         # filtra todos os protocolos já aprovados
         protocolos_servidor = ProtocoloAutorizacaoTeletrabalho.objects.filter(
@@ -1334,7 +1367,6 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
             # data avaliacao = 1 mes depois do periodo
             data_avaliacao = add_one_month(periodo)
             if date.today() >= data_avaliacao:
-                print(periodo, data_avaliacao)
                 ano_avaliacao = periodo.year
                 mes_avaliacao = periodo.month
                 # verifica se ja foi encaminhado um pedido de avaliacao
@@ -1342,7 +1374,7 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
                     Q(ano_avaliacao=ano_avaliacao) & Q(mes_avaliacao=mes_avaliacao) & Q(despacho_cigt=self.despacho_cigt))
                 if not encaminhamentos_avaliacoes:
                     # cria encaminhamento de avaliacao
-                    modelo_encaminhamento = ModeloDocumento.objects.get(nome_modelo="PROTOCOLO AUTORIZACAO TELETRABALHO")  # noqa E501
+                    modelo_encaminhamento = ModeloDocumento.objects.get(nome_modelo="DESPACHO ENCAMINHA AVALIACAO CIGT")  # noqa E501
                     goat = User.objects.get(username='goat')
                     obj = DespachoEncaminhaAvaliacao.objects.create(
                         numeracao=Numeracao.get_ultimo_ano(),
@@ -1379,6 +1411,7 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
                 encaminhamento_avaliacao_cigt=encaminhamento_avaliacao).first()
             print(
                 f'encaminhamento: {encaminhamento_avaliacao} - avaliação {avaliacao}')
+
             if not avaliacao.atestado_cumprimento_metas:
                 servidor = avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.servidor
                 mes_avaliacao = avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao
@@ -1534,111 +1567,6 @@ class ControleMensalTeletrabalho(models.Model):
         verbose_name_plural = "CIGT | Controle Mensal Teletrabalho"
 
 
-@receiver(post_save, sender=ProtocoloAutorizacaoTeletrabalho, weak=False)
-def controle_mensal_teletrabalho_callback(sender, **kwargs):
-    """
-    Função que faz o controle da Tabela ControleMensalTeletrabalho
-    com base nas alterações de ProtocoloAutorizacaoTeletrabalho.
-
-    Verifica se existe um protocolo já aprovado para o servidor.
-    Verifica se houve alteração de períodos do teletrabalho para
-    acrescentar ou remover o servidor da Portaria de autorização.
-
-    """
-    instance = kwargs['instance']
-    created = kwargs['created']
-
-    if created:
-
-        servidor = instance.despacho_cigt.plano_trabalho.manifestacao.servidor
-        planos_trabalho = PlanoTrabalho.objects.filter(
-            manifestacao__servidor=servidor)
-        pareceres_cigt = ParecerCIGT.objects.filter(
-            plano_trabalho__in=planos_trabalho)
-        # filtra todos os protocolos já aprovados
-        protocolos_servidor = ProtocoloAutorizacaoTeletrabalho.get_protocolos_aprovados_por_servidor(
-            servidor)
-        # verifica o último protocolo aprovado
-        # last_protocolo = protocolos_servidor.last()
-        protocolo_atual = instance
-        plano_trabalho_atual = instance.despacho_cigt.plano_trabalho
-        # cria as entradas do novo protocolo na tabela ControleMensalTeletrabalho
-
-        # tenho que escrever uma funcao que retorne um conjunto com os periodos ja aprovados da tabela de controlemensal
-
-        periodos_ja_aprovados = ControleMensalTeletrabalho.get_periodos_aprovados_por_servidor(
-            servidor)
-        periodo_atual = plano_trabalho_atual.get_lista_ano_mes_periodos_teletrabalho()
-
-        # precisamos verificar a necessidade de adicionar novas entradas na tabela
-        # de controle mensal
-        for periodo in periodo_atual:
-            if not periodo in periodos_ja_aprovados:
-                # situação em que o novo plano de trabalho tem um período que ainda
-                # não está na tabela de controle mensal
-                # nesse caso é preciso criar uma entrada na tabela de controle mensal
-                print(
-                    f'[+]{periodo} nao consta nos planos de trabalho já aprovados [ADICIONAR]')
-                ControleMensalTeletrabalho.objects.create(
-                    protocolo_autorizacao=protocolo_atual,
-                    competencia=periodo,
-                    vigente=True,
-                )
-            else:
-                print(
-                    f'[!]{periodo} consta no novo plano de trabalho e já consta em algum plano de trabalho antigo [NO ACTION]!')
-                # situação em que o novo plano de trabalho tem um período que já
-                # está na tabela de controle mensal
-                # nesse caso, se a vigência estiver FALSE alteramos para TRUE, pois o período está no plano novo
-                controle_mensal = ControleMensalTeletrabalho.objects.filter(
-                    protocolo_autorizacao__in=protocolos_servidor).filter(competencia=periodo).first()
-                controle_mensal.vigente = True
-                controle_mensal.protocolo_alteracao = protocolo_atual
-                controle_mensal.save()
-
-        # precisamos verificar a necessidade de modificar uma entrada na tabel de controle
-        # mensal.
-        # se um novo plano de trabalho (instance) não contiver algum período já aprovado,
-        # editamos a vigência do período
-
-        for periodo in periodos_ja_aprovados:
-            if not periodo in periodo_atual:
-                print(
-                    f'[!]{periodo} NÃO consta no novo plano de trabalho consta em algum plano de trabalho antigo [RETIRAR VIGÊNCIA]!')
-                controle_mensal = ControleMensalTeletrabalho.objects.filter(
-                    protocolo_autorizacao__in=protocolos_servidor).filter(competencia=periodo).first()
-                controle_mensal.vigente = False
-                controle_mensal.protocolo_alteracao = protocolo_atual
-                controle_mensal.save()
-
-        # for periodo in ProtocoloAutorizacaoTeletrabalho.get_periodos_aprovados_por_servidor(servidor):
-            # if not ControleMensalTeletrabalho.objects.filter(protocolo_autorizacao=last_protocolo).filter(competencia=periodo):
-
-            # for periodo_atual in plano_trabalho_atual.get_lista_ano_mes_periodos_teletrabalho():
-
-            # for protocolo_servidor in protocolos_servidor:
-                # if not ControleMensalTeletrabalho.objects.filter(protocolo_autorizacao=protocolo_servidor).filter(competencia=periodo):
-
-        # itera todos os protocolos já aprovados para verificar se houve mudança de período
-        """for protocolo in protocolos_servidor:
-            # exclui o último protocolo
-            if protocolo != instance:
-                for periodo_anterior in protocolo.despacho_cigt.plano_trabalho.get_lista_ano_mes_periodos_teletrabalho():
-                    # verifica se o período não consta no último protocolo
-                    if not instance.despacho_cigt.plano_trabalho.is_servidor_teletrabalho_ano_mes(periodo_anterior):
-                        print(f'{periodo_anterior} não consta no novo protocolo')
-                        # tira a vigencia na tabela ControleMensalTeletralho
-                        import ipdb
-                        ipdb.set_trace()
-                        controle_mensal = ControleMensalTeletrabalho.objects.filter(
-                            protocolo_autorizacao=protocolo)
-                        controle_mensal_periodo = controle_mensal.filter(
-                            competencia=periodo_anterior).first()
-                        controle_mensal_periodo.vigente = False
-                        controle_mensal_periodo.protocolo_alteracao = protocolo_atual
-                        controle_mensal_periodo.save()"""
-
-
 class DespachoArquivamentoManifestacaoCIGT(DespachoCIGTAbstract):
     """
     Modelo para numeração de despachos de arquivamento dos encaminhamentos
@@ -1675,7 +1603,7 @@ class DespachoEncaminhaAvaliacao(DespachoCIGTAbstract):
     """
     ano_avaliacao = models.IntegerField(default=timezone.now().year)
     mes_avaliacao = models.IntegerField(default=timezone.now().month)
-    despacho_cigt = models.ForeignKey(ParecerCIGT, related_name="%(app_label)s_%(class)s_despacho_cigt", on_delete=models.CASCADE)  # noqa E501
+    despacho_cigt = models.ForeignKey(DespachoCIGTPlanoTrabalho, related_name="%(app_label)s_%(class)s_despacho_cigt", on_delete=models.CASCADE)  # noqa E501
 
     def get_context_docx(self):
         try:
@@ -1723,6 +1651,127 @@ class AvaliacaoChefia(BaseModelGeneral):
                                                   max_length=255, null=True)
     justificativa_nao_cumprimento = models.TextField(blank=True, null=True)
     encaminhamento_avaliacao_cigt = models.ForeignKey(DespachoEncaminhaAvaliacao, related_name="%(app_label)s_%(class)s_encaminha_avaliacao", on_delete=models.CASCADE)  # noqa E501
+    finalizar_avaliacao = models.BooleanField(default=False)
+
+    def get_plano_trabalho(self):
+        """
+        método que retorna o plano de trabalho associado
+        a uma avaliação
+        """
+        return self.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho
+
+    def get_periodo_para_avaliacao(self):
+        """
+        método que retorna o período para avaliação.
+        """
+        #
+        # resolver: se o periodo for maior que um um mês, o filtro não vai retornar nada
+        # exemplo: periodo 1/1/2024 a 1/5/2024
+        # porque o período de avaliacao é sempre mensal
+        # pensar como resolver isso
+        #
+        ano_avaliacao = self.encaminhamento_avaliacao_cigt.ano_avaliacao
+        mes_avaliacao = self.encaminhamento_avaliacao_cigt.mes_avaliacao
+        data_inicio_avaliacao = date(ano_avaliacao, mes_avaliacao, 1)
+        last_day_month = calendar.monthrange(
+            ano_avaliacao, mes_avaliacao)[1]
+        data_fim_avaliacao = date(ano_avaliacao, mes_avaliacao, last_day_month)
+        plano_trabalho = self.get_plano_trabalho()
+        periodo = PeriodoTeletrabalho.objects.filter(
+            plano_trabalho=plano_trabalho, data_inicio=data_inicio_avaliacao, data_fim=data_fim_avaliacao)
+        return periodo.first()
+
+    def get_periodos_para_avaliacao(self):
+        """
+        método que retorna todos os períodos para avaliação
+        associados ao plano de trabalho 
+
+        """
+        plano_trabalho = self.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho
+        periodos = PeriodoTeletrabalho.objects.filter(
+            plano_trabalho=plano_trabalho).order_by('data_fim')
+        return periodos
+
+    def get_atividades_para_avaliacao(self):
+        """
+        método que retorna todas as atividades 
+        que devem ser avaliadas num dado momento.
+        """
+        #
+        # CRIAR UM VIEW QUE RETORNA AS ATIVIDADES QUE TEM QUE SER AVALIADAS
+        # atividade.cumprimento != None -> já foi avaliado
+        # criar lógica que se a chefia mudar a avaliação tem que justificar e deixar
+        # o histórico salvo
+        #
+        periodo = self.get_periodo_para_avaliacao()
+        atividades_pk = set()
+        atividades = AtividadesTeletrabalho.objects.filter(
+            periodo=periodo)
+        return atividades
+
+    def verifica_avaliacoes_no_periodo(self):
+        """
+        método que verifica se as atividades do plano de trabalho foram avaliadas
+        no período do objeto.
+
+        executar o método depois que a chefia fizer o preenchimento dos cumprimentos
+        das atividades na view de edição de atividades
+
+
+        """
+        periodo = self.get_periodo_para_avaliacao()
+        atividades = AtividadesTeletrabalho.objects.filter(periodo=periodo)
+        count_cumpridas = 0
+        count = 0
+        for atividade in atividades:
+            count += 1
+            print(atividade, atividade.cumprimento)
+            if atividade.cumprimento == 'cumprida':
+                count_cumpridas += 1
+        if count_cumpridas == count:
+            self.atestado_cumprimento_metas = 1
+        elif count_cumpridas == 0:
+            self.atestado_cumprimento_metas = 3
+        else:
+            self.atestado_cumprimento_metas = 2
+        if count == 1:
+            if count_cumpridas == 0:
+                self.atestado_cumprimento_metas = 2
+        print(self.atestado_cumprimento_metas)
+        self.save()
+
+    def verifica_avaliacoes(self):
+        """
+        método que verifica se as atividades do plano de trabalho foram avaliadas
+        em todos os períodos do plano de trabalho.
+
+        executar o método depois que a chefia fizer o preenchimento dos cumprimentos
+        das atividades na view de edição de atividades
+
+
+        """
+        plano_trabalho = self.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho
+        periodos = PeriodoTeletrabalho.objects.filter(
+            plano_trabalho=plano_trabalho)
+        count = 0
+        count_cumpridas = 0
+        for periodo in periodos:
+            atividades = AtividadesTeletrabalho.objects.filter(periodo=periodo)
+            for atividade in atividades:
+                count += 1
+                print(atividade, atividade.cumprimento)
+                if atividade.cumprimento == 'cumprida':
+                    count_cumpridas += 1
+        if count_cumpridas == count:
+            self.atestado_cumprimento_metas = 1
+        elif count_cumpridas == 0:
+            self.atestado_cumprimento_metas = 3
+        else:
+            self.atestado_cumprimento_metas = 2
+        if count == 1:
+            if count_cumpridas == 0:
+                self.atestado_cumprimento_metas = 2
+        print(self.atestado_cumprimento_metas)
 
     def get_atividades_plano_trabalho(self):
         plano_trabalho = self.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho
@@ -1761,7 +1810,7 @@ class DespachoRetornoAvaliacao(DespachoCIGTAbstract):
         ('3', 'Servidor não cumpriu as metas e/ou condições o Plano de Trabalho'),  # noqa E501
     )
     # mes = models.IntegerField(default=timezone.now().month)
-    # despacho_cigt = models.ForeignKey(ParecerCIGT, related_name="%(app_label)s_%(class)s_despacho_cigt", on_delete=models.CASCADE)  # noqa E501
+    # despacho_cigt = models.ForeignKey(DespachoCIGTPlanoTrabalho, related_name="%(app_label)s_%(class)s_despacho_cigt", on_delete=models.CASCADE)  # noqa E501
     avaliacao_chefia = models.ForeignKey(AvaliacaoChefia, related_name="%(app_label)s_%(class)s_avaliacao_chefia", on_delete=models.CASCADE)  # noqa E501
     # despacho_encaminhamento_avaliacao = models.ForeignKey(DespachoEncaminhaAvaliacao, related_name="%(app_label)s_%(class)s_encaminha_avaliacao", on_delete=models.CASCADE)  # noqa E501
     cumprimento_integral = models.CharField(choices=_CUMPRIMENTO_METAS, null=True, max_length=255)  # noqa E501
@@ -1846,7 +1895,7 @@ class ModelChangeLogsModel(models.Model):
 
 
 _TEMPLATES = [
-    ParecerCIGT,
+    DespachoCIGTPlanoTrabalho,
     DespachoArquivamentoManifestacaoCIGT,
     DespachoGenericoCIGT,
     DespachoEncaminhaAvaliacao,
@@ -1873,55 +1922,55 @@ for model in _TEMPLATES:
             Numeracao.update_ultimo_numero()
 
 
-@receiver(pre_save, sender=ManifestacaoInteresse, weak=False)
-def log_aprovado_chefia_callback(sender, **kwargs):
-    """
-    Função criada para usar o Django Signals registrar a
-    aprovação ou edição da aprovação da manifestação
-    de interesse do servidor por parte da chefia imediata
-    - modelo ManifestacaoInteresse
-    """
-    instance = kwargs['instance']
-    try:
-        for field in instance._meta.get_fields():
-            old_instance = ManifestacaoInteresse.objects.get(
-                id=instance.id)
-            old_value = getattr(old_instance, field.name, None)
-            new_value = getattr(instance, field.name, None)
-            if new_value != old_value:
-                data = {
-                    'user_id': instance.modificado_por.id,
-                    'table_name': sender._meta.model_name,
-                    'table_row': field.name,
-                    'action': 'changed',
-                    'old_value': str(old_value),
-                    'new_value': str(new_value),
-                    'timestamp': timezone.now(),
-                }
-                ModelChangeLogsModel.objects.create(**data)
-    except ManifestacaoInteresse.DoesNotExist:
-        pass
+# @receiver(pre_save, sender=ManifestacaoInteresse, weak=False)
+# def log_aprovado_chefia_callback(sender, **kwargs):
+#     """
+#     Função criada para usar o Django Signals registrar a
+#     aprovação ou edição da aprovação da manifestação
+#     de interesse do servidor por parte da chefia imediata
+#     - modelo ManifestacaoInteresse
+#     """
+#     instance = kwargs['instance']
+#     try:
+#         for field in instance._meta.get_fields():
+#             old_instance = ManifestacaoInteresse.objects.get(
+#                 id=instance.id)
+#             old_value = getattr(old_instance, field.name, None)
+#             new_value = getattr(instance, field.name, None)
+#             if new_value != old_value:
+#                 data = {
+#                     'user_id': instance.modificado_por.id,
+#                     'table_name': sender._meta.model_name,
+#                     'table_row': field.name,
+#                     'action': 'changed',
+#                     'old_value': str(old_value),
+#                     'new_value': str(new_value),
+#                     'timestamp': timezone.now(),
+#                 }
+#                 ModelChangeLogsModel.objects.create(**data)
+#     except ManifestacaoInteresse.DoesNotExist:
+#         pass
 
 
-@receiver(post_delete, sender=ManifestacaoInteresse, weak=False)
-def log_deleta_manifestacao_interesse_callback(sender, **kwargs):
-    """
-    Função criada para usar o Django Signals registrar a
-    exclusão de uma manifestação de interesse - modelo ManifestacaoInteresse
-    """
-    instance = kwargs['instance']
+# @receiver(post_delete, sender=ManifestacaoInteresse, weak=False)
+# def log_deleta_manifestacao_interesse_callback(sender, **kwargs):
+#     """
+#     Função criada para usar o Django Signals registrar a
+#     exclusão de uma manifestação de interesse - modelo ManifestacaoInteresse
+#     """
+#     instance = kwargs['instance']
 
-    for field in instance._meta.get_fields():
-        data = {
-            'user_id': instance.modificado_por.id,
-            'table_name': instance._meta.model_name,
-            'table_row': field.name,
-            'action': 'deleted',
-            'old_value': getattr(instance, field.name),
-            'new_value': 'null',
-            'timestamp': timezone.now(),
-        }
-        ModelChangeLogsModel.objects.create(**data)
+#     for field in instance._meta.get_fields():
+#         data = {
+#             'user_id': instance.modificado_por.id,
+#             'table_name': instance._meta.model_name,
+#             'table_row': field.name,
+#             'action': 'deleted',
+#             'old_value': getattr(instance, field.name),
+#             'new_value': 'null',
+#             'timestamp': timezone.now(),
+#         }
+#         ModelChangeLogsModel.objects.create(**data)
 
 
 @receiver(pre_save, sender=ManifestacaoInteresse, weak=False)
@@ -1971,67 +2020,72 @@ def adiciona_chefia_callback(sender, **kwargs):
     do servidor - modelo ManifestacaoInteresse
     """
 
-    # created = kwargs['created']
     instance = kwargs['instance']
     chefia_imediata = instance.chefia_imediata
     chefias = Group.objects.get(name='CHEFIAS')
     chefias.user_set.add(chefia_imediata)
 
 
-@receiver(post_save, sender=PlanoTrabalho, weak=False)
-def cria_despacho_cigt_aprovacao_plano_trabalho_callback(sender, **kwargs):
-    """
-    Função criada para usar o Django Signals para
-    criar automaticamente o Despacho de Aprovação
-    do Plano de Trabalho da CIGT quando o membro
-    da CIGT seleciona aprovado_cigt=True
+# @receiver(post_save, sender=PlanoTrabalho, weak=False)
+# def cria_despacho_cigt_aprovacao_plano_trabalho_callback(sender, **kwargs):
+#     #
+#     # COLOCAR NA VIEW
+#     #
+#     """
+#     Função criada para usar o Django Signals para
+#     criar automaticamente o Despacho de Aprovação
+#     do Plano de Trabalho da CIGT quando o membro
+#     da CIGT seleciona aprovado_cigt=True
 
-    Também cria automaticamente a ProtocoloAutorizacaoTeletrabalho
-    que a chefia imediata deverá editar para colocar o sid com
-    os formulários
+#     Também cria automaticamente a ProtocoloAutorizacaoTeletrabalho
+#     que a chefia imediata deverá editar para colocar o sid com
+#     os formulários
 
-    """
-    created = kwargs['created']
-    instance = kwargs['instance']
-    if not created:
-        if instance.aprovado_cigt:
-            if not ParecerCIGT.objects.filter(plano_trabalho=instance):
-                modelo = ModeloDocumento.objects.get(nome_modelo="PARECER PLANO DE TRABALHO CIGT")  # noqa E501
-                # cria ParecerCIGT
-                parecer = ParecerCIGT.objects.create(
-                    plano_trabalho=instance,
-                    modelo=modelo,
-                    adicionado_por=instance.usuario_cigt_aprovacao,
-                    modificado_por=instance.usuario_cigt_aprovacao,
-                    numeracao=Numeracao.get_ultimo_numero()
-                )
-                # try except
-                if ComissaoInterna.objects.get(user=instance.modificado_por):
-                    parecer.membro_cigt = ComissaoInterna.objects.get(
-                        user=instance.modificado_por)
-                    parecer.save()
-                # cria ProtocoloAutorizacaoTeletrabalho
-                    modelo = ModeloDocumento.objects.get(nome_modelo="PROTOCOLO AUTORIZACAO TELETRABALHO")  # noqa E501
-                    ProtocoloAutorizacaoTeletrabalho.objects.create(
-                        despacho_cigt=parecer,
-                        publicado_doe='nao_publicado',
-                        modelo=modelo,
-                        adicionado_por=instance.usuario_cigt_aprovacao,
-                        modificado_por=instance.usuario_cigt_aprovacao)
+#     """
+#     created = kwargs['created']
+#     instance = kwargs['instance']
+#     if not created:
+#         if instance.aprovado_cigt:
+#             if not DespachoCIGTPlanoTrabalho.objects.filter(plano_trabalho=instance):
+#                 modelo = ModeloDocumento.objects.get(nome_modelo="PARECER PLANO DE TRABALHO CIGT")  # noqa E501
+#                 # cria DespachoCIGTPlanoTrabalho
+#                 parecer = DespachoCIGTPlanoTrabalho.objects.create(
+#                     plano_trabalho=instance,
+#                     modelo=modelo,
+#                     adicionado_por=instance.usuario_cigt_aprovacao,
+#                     modificado_por=instance.usuario_cigt_aprovacao,
+#                     numeracao=Numeracao.get_ultimo_numero()
+#                 )
+#                 # try except
+#                 if ComissaoInterna.objects.get(user=instance.modificado_por):
+#                     parecer.membro_cigt = ComissaoInterna.objects.get(
+#                         user=instance.modificado_por)
+#                     parecer.save()
+#                 # cria ProtocoloAutorizacaoTeletrabalho
+#                     modelo = ModeloDocumento.objects.get(nome_modelo="PROTOCOLO AUTORIZACAO TELETRABALHO")  # noqa E501
+#                     ProtocoloAutorizacaoTeletrabalho.objects.create(
+#                         despacho_cigt=parecer,
+#                         publicado_doe='nao_publicado',
+#                         modelo=modelo,
+#                         adicionado_por=instance.usuario_cigt_aprovacao,
+#                         modificado_por=instance.usuario_cigt_aprovacao)
 
 
-@receiver(post_save, sender=DeclaracaoNaoEnquadramentoVedacoes, weak=False)
-def autorizacao_diretor_teletrabalho_chefias_callback(sender, **kwargs):
-    """
-    Funcão que cria automaticamente a pendência de aprovação se
-    uma declaracao é salva com cargo_chefia_direcao=False
-    """
-    instance = kwargs['instance']
-    if not instance.cargo_chefia_direcao:
-        if not AutorizacoesExcecoes.objects.filter(declaracao=instance):
-            modelo = ModeloDocumento.objects.get(nome_modelo="APROVACAO EXCECAO DIRETOR")  # noqa E501
-            AutorizacoesExcecoes.objects.create(
-                declaracao=instance, modelo=modelo)
+# @receiver(post_save, sender=DeclaracaoNaoEnquadramentoVedacoes, weak=False)
+# def autorizacao_diretor_teletrabalho_chefias_callback(sender, **kwargs):
+#     #
+#     # COLOCAR NA VIEW
+#     #
+#     """
+#     Funcão que cria automaticamente a pendência de aprovação se
+#     uma declaracao é salva com cargo_chefia_direcao=False
+#     """
+#     instance = kwargs['instance']
+#     if not instance.cargo_chefia_direcao:
+#         if not AutorizacoesExcecoes.objects.filter(declaracao=instance):
+#             modelo = ModeloDocumento.objects.get(nome_modelo="APROVACAO EXCECAO DIRETOR")  # noqa E501
+#             AutorizacoesExcecoes.objects.create(
+#                 declaracao=instance, modelo=modelo)
 
 
 @receiver(post_save, sender=AvaliacaoChefia, weak=False)
@@ -2041,6 +2095,10 @@ def cria_despacho_retorno_avaliacao_chefias_callback(sender, **kwargs):
     criar automaticamente o despacho de retorno de avaliações
     das chefias imediatas.
     """
+
+    #
+    # COLOCAR NA VIEW
+    #
 
     instance = kwargs['instance']
 
@@ -2065,3 +2123,149 @@ def cria_despacho_retorno_avaliacao_chefias_callback(sender, **kwargs):
 
 # criar uma funcao que impede que a chefia imediata altere a avaliacao ja feita
 # para ter uma nova avaliacao tem que deletar a antiga
+
+
+@receiver(post_save, sender=ProtocoloAutorizacaoTeletrabalho, weak=False)
+def controle_mensal_teletrabalho_callback(sender, **kwargs):
+    """
+    Função que faz o controle da Tabela ControleMensalTeletrabalho
+    com base nas alterações de ProtocoloAutorizacaoTeletrabalho.
+
+    Verifica se existe um protocolo já aprovado para o servidor.
+    Verifica se houve alteração de períodos do teletrabalho para
+    acrescentar ou remover o servidor da Portaria de autorização.
+
+    """
+    instance = kwargs['instance']
+    created = kwargs['created']
+
+    if created:
+
+        servidor = instance.despacho_cigt.plano_trabalho.manifestacao.servidor
+        planos_trabalho = PlanoTrabalho.objects.filter(
+            manifestacao__servidor=servidor)
+        pareceres_cigt = DespachoCIGTPlanoTrabalho.objects.filter(
+            plano_trabalho__in=planos_trabalho)
+        # filtra todos os protocolos já aprovados
+        protocolos_servidor = ProtocoloAutorizacaoTeletrabalho.get_protocolos_aprovados_por_servidor(
+            servidor)
+        # verifica o último protocolo aprovado
+        # last_protocolo = protocolos_servidor.last()
+        protocolo_atual = instance
+        plano_trabalho_atual = instance.despacho_cigt.plano_trabalho
+        # cria as entradas do novo protocolo na tabela ControleMensalTeletrabalho
+
+        # tenho que escrever uma funcao que retorne um conjunto com os periodos ja aprovados da tabela de controlemensal
+
+        periodos_ja_aprovados = ControleMensalTeletrabalho.get_periodos_aprovados_por_servidor(
+            servidor)
+        periodo_atual = plano_trabalho_atual.get_lista_ano_mes_periodos_teletrabalho()
+
+        # precisamos verificar a necessidade de adicionar novas entradas na tabela
+        # de controle mensal
+        for periodo in periodo_atual:
+            if not periodo in periodos_ja_aprovados:
+                # situação em que o novo plano de trabalho tem um período que ainda
+                # não está na tabela de controle mensal
+                # nesse caso é preciso criar uma entrada na tabela de controle mensal
+                print(
+                    f'[+]{periodo} nao consta nos planos de trabalho já aprovados [ADICIONAR]')
+                ControleMensalTeletrabalho.objects.create(
+                    protocolo_autorizacao=protocolo_atual,
+                    competencia=periodo,
+                    vigente=True,
+                )
+            else:
+                print(
+                    f'[!]{periodo} consta no novo plano de trabalho e já consta em algum plano de trabalho antigo [NO ACTION]!')
+                # situação em que o novo plano de trabalho tem um período que já
+                # está na tabela de controle mensal
+                # nesse caso, se a vigência estiver FALSE alteramos para TRUE, pois o período está no plano novo
+                controle_mensal = ControleMensalTeletrabalho.objects.filter(
+                    protocolo_autorizacao__in=protocolos_servidor).filter(competencia=periodo).first()
+                controle_mensal.vigente = True
+                controle_mensal.protocolo_alteracao = protocolo_atual
+                controle_mensal.save()
+
+        # precisamos verificar a necessidade de modificar uma entrada na tabel de controle
+        # mensal.
+        # se um novo plano de trabalho (instance) não contiver algum período já aprovado,
+        # editamos a vigência do período
+
+        for periodo in periodos_ja_aprovados:
+            if not periodo in periodo_atual:
+                print(
+                    f'[!]{periodo} NÃO consta no novo plano de trabalho consta em algum plano de trabalho antigo [RETIRAR VIGÊNCIA]!')
+                controle_mensal = ControleMensalTeletrabalho.objects.filter(
+                    protocolo_autorizacao__in=protocolos_servidor).filter(competencia=periodo).first()
+                if controle_mensal:
+                    controle_mensal.vigente = False
+                    controle_mensal.protocolo_alteracao = protocolo_atual
+                    controle_mensal.save()
+
+        # for periodo in ProtocoloAutorizacaoTeletrabalho.get_periodos_aprovados_por_servidor(servidor):
+            # if not ControleMensalTeletrabalho.objects.filter(protocolo_autorizacao=last_protocolo).filter(competencia=periodo):
+
+            # for periodo_atual in plano_trabalho_atual.get_lista_ano_mes_periodos_teletrabalho():
+
+            # for protocolo_servidor in protocolos_servidor:
+                # if not ControleMensalTeletrabalho.objects.filter(protocolo_autorizacao=protocolo_servidor).filter(competencia=periodo):
+
+        # itera todos os protocolos já aprovados para verificar se houve mudança de período
+        """for protocolo in protocolos_servidor:
+            # exclui o último protocolo
+            if protocolo != instance:
+                for periodo_anterior in protocolo.despacho_cigt.plano_trabalho.get_lista_ano_mes_periodos_teletrabalho():
+                    # verifica se o período não consta no último protocolo
+                    if not instance.despacho_cigt.plano_trabalho.is_servidor_teletrabalho_ano_mes(periodo_anterior):
+                        print(f'{periodo_anterior} não consta no novo protocolo')
+                        # tira a vigencia na tabela ControleMensalTeletralho
+                        import ipdb
+                        ipdb.set_trace()
+                        controle_mensal = ControleMensalTeletrabalho.objects.filter(
+                            protocolo_autorizacao=protocolo)
+                        controle_mensal_periodo = controle_mensal.filter(
+                            competencia=periodo_anterior).first()
+                        controle_mensal_periodo.vigente = False
+                        controle_mensal_periodo.protocolo_alteracao = protocolo_atual
+                        controle_mensal_periodo.save()"""
+
+
+@receiver(post_save, sender=AtividadesTeletrabalho, weak=False)
+def cumprimento_avaliacao_das_atividades_chefia(sender, **kwargs):
+    instance = kwargs['instance']
+    created = kwargs['created']
+
+    # avaliacao.verifica_avaliacoes_no_periodo()
+    # import ipdb
+    # ipdb.set_trace()
+
+    if not created:
+        avaliacao = instance.get_avaliacao_chefia()
+        if avaliacao:
+            print(f'cumprimento: { instance.cumprimento }')
+            atividades = avaliacao.get_atividades_para_avaliacao()
+            qtd_atividades = len(atividades)
+            count_atividades = 0
+            print(
+                f'pré -> avaliação chefia: { avaliacao.atestado_cumprimento_metas }')
+            for atividade in atividades:
+                if atividade.cumprimento == 'cumprida':
+                    count_atividades += 1
+                elif atividade.cumprimento == 'parcialmente_cumprida':
+                    count_atividades += .5
+                elif atividade.cumprimento == 'nao_executada':
+                    count_atividades += 0
+
+            if count_atividades == qtd_atividades:
+                avaliacao.atestado_cumprimento_metas = 1
+                avaliacao.save()
+            elif count_atividades == 0:
+                avaliacao.atestado_cumprimento_metas = 3
+                avaliacao.save()
+            else:
+                avaliacao.atestado_cumprimento_metas = 2
+                avaliacao.save()
+
+            print(
+                f'pos -> avaliação chefia: { avaliacao.atestado_cumprimento_metas }')

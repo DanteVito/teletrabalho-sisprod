@@ -5,6 +5,15 @@
 {% block content %}
 
 <h2>Avaliação Chefia Imediata</h2>
+
+<ul>
+    {% for atividade in atividades_para_avaliacao %}
+        <li>{{ atividade }}</li>
+    {% endfor %}
+</ul>
+<br>
+{{ formset }}
+<br>
 <ul>
     {{ avaliacao }} - {{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}/{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }}
     <form method='POST'>

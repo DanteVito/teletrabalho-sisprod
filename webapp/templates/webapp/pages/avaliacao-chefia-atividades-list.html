@@ -1,0 +1,21 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2>Avaliação Chefia Imediata - {{ avaliacao }} - {{ avaliacao.atestado_cumprimento_metas }}</h2>
+<h3>Plano de Trabalho: {{ plano_trabalho.manifestacao.servidor }}</h3>
+<h4>Períodos para avaliação: {{ periodo_para_avaliacao }}</h4>
+<ul>
+    {% for atividade in atividades_para_avaliacao %}
+    <li>{{ atividade }} - cumprimento: {{ atividade.cumprimento }} <a href="{% url 'webapp:atividade_cumprimento' pk_avaliacao atividade.pk 'cumprida' %}">cumprida</a> - <a href="{% url 'webapp:atividade_cumprimento' pk_avaliacao atividade.pk 'nao_executada' %}">não cumprida</a> - <a href="{% url 'webapp:atividade_cumprimento' pk_avaliacao atividade.pk 'parcialmente_cumprida' %}">parcialmente cumprida</a></li>
+    {% endfor %}
+</ul>
+
+<a href="{% url 'webapp:finalizar_avaliacao' pk_avaliacao %}">
+    <input type="submit" value="finaliar avaliação">
+</a>
+
+
+{% endblock%}

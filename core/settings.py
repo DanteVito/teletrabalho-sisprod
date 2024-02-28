@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from decouple import Csv, config
+from django.contrib.messages import constants
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -127,3 +128,12 @@ TEMPLATE_DOCX_ROOT = MEDIA_ROOT / 'templates_docx'
 GENERATED_DOCX_ROOT = MEDIA_ROOT / 'generated_docx'
 GENERATED_PDF_ROOT = MEDIA_ROOT / 'generated_pdf'
 TEMP_FOLDER_ROOT = MEDIA_ROOT / 'temp'
+
+# CSS class for flash messages
+MESSAGE_TAGS = {
+    constants.DEBUG: 'message-debug',
+    constants.ERROR: 'message-error',
+    constants.INFO: 'message-info',
+    constants.SUCCESS: 'message-success',
+    constants.WARNING: 'message-warning',
+}

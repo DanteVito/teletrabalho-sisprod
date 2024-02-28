@@ -51,6 +51,8 @@ urlpatterns = [
          name='atividade_teletrabalho'),
     path('atividade-teletrabalho/delete/<int:pk>', views.atividade_teletrabalho_delete,
          name='atividade_teletrabalho_delete'),
+    path('atividade-cumprimento/<int:pk_avaliacao>/<int:pk_atividade>/<str:cumprimento>',
+         views.atividade_cumprimento, name='atividade_cumprimento'),
     # autorizacoes excecoes chefias
     path('autorizacoes-excecoes/', views.autorizacoes_excecoes,
          name='autorizacoes_excecoes'),
@@ -79,6 +81,12 @@ urlpatterns = [
     path('avaliacoes-chefia/', views.avaliacoes_chefia, name='avaliacoes_chefia'),
     path('avaliacoes-chefia/edit/<int:pk>',
          views.avaliacao_chefia_edit, name='avaliacao_chefia_edit'),
+    path('avaliacao-atividades-list/<int:pk>', views.avaliacao_atividades_list,
+         name='avaliacao_atividades_list'),
+    path('avaliacao-chefia-atividade/<int:pk>', views.avaliacao_chefia_atividade,
+         name='avaliacao_chefia_atividade'),
+    path('avaliacao-chefia-atividade/finalizar/<int:pk>', views.finalizar_avaliacao,
+         name='finalizar_avaliacao'),
     # gabinete
     path('gabinete/', views.gabinete, name='gabinete'),
 

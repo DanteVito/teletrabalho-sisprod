@@ -17,14 +17,14 @@ from .models import (AtividadesTeletrabalho, AutorizacoesExcecoes,
                      ControleMensalTeletrabalho,
                      DeclaracaoNaoEnquadramentoVedacoes,
                      DespachoArquivamentoManifestacaoCIGT,
-                     DespachoEncaminhaAvaliacao, DespachoGenericoCIGT,
-                     DespachoRetornoAvaliacao, ListaAtividades,
-                     ListaIndicadoresMetricasTeletrabalho, ListaPostosTrabalho,
-                     ListaSistemasTeletrabalho, ManifestacaoInteresse,
-                     ModelChangeLogsModel, ModeloDocumento, Numeracao,
-                     ParecerCIGT, PeriodoTeletrabalho, PlanoTrabalho,
-                     PortariasPublicadasDOE, ProtocoloAutorizacaoTeletrabalho,
-                     Setor, Unidade)
+                     DespachoCIGTPlanoTrabalho, DespachoEncaminhaAvaliacao,
+                     DespachoGenericoCIGT, DespachoRetornoAvaliacao,
+                     ListaAtividades, ListaIndicadoresMetricasTeletrabalho,
+                     ListaPostosTrabalho, ListaSistemasTeletrabalho,
+                     ManifestacaoInteresse, ModelChangeLogsModel,
+                     ModeloDocumento, Numeracao, PeriodoTeletrabalho,
+                     PlanoTrabalho, PortariasPublicadasDOE,
+                     ProtocoloAutorizacaoTeletrabalho, Setor, Unidade)
 
 
 @admin.action(description="Gerar protocolo DOCX")
@@ -520,14 +520,14 @@ class AvaliacaoChefiaAdmin(admin.ModelAdmin):
         if request.user.groups.filter(name='CIGT'):
             return super().get_queryset(request)
         if request.user.groups.filter(name='CHEFIAS'):
-            despachos_cigt = ParecerCIGT.objects.filter(
+            despachos_cigt = DespachoCIGTPlanoTrabalho.objects.filter(
                 plano_trabalho__manifestacao__chefia_imediata=request.user)
             queryset = AvaliacaoChefia.objects.filter(
                 encaminhamento_avaliacao_cigt__despacho_cigt__in=despachos_cigt)
         return queryset
 
 
-class ParecerCIGTAdmin(admin.ModelAdmin):
+class DespachoCIGTPlanoTrabalhoAdmin(admin.ModelAdmin):
     list_display = ('plano_trabalho', 'ano', 'numeracao', 'data_criacao', 'membro_cigt')  # noqa E501
     actions = (generate_docx, publica_doe, )
     fields = ('plano_trabalho', 'membro_cigt', 'ano', 'data', 'deferido', )  # noqa E501
@@ -557,7 +557,7 @@ class ParecerCIGTAdmin(admin.ModelAdmin):
             return super().get_queryset(request)
         if request.user.groups.filter(name='CIGT'):
             return super().get_queryset(request)
-        queryset = ParecerCIGT.objects.filter(adicionado_por=request.user)  # noqa E501
+        queryset = DespachoCIGTPlanoTrabalho.objects.filter(adicionado_por=request.user)  # noqa E501
         return queryset
 
     def get_changeform_initial_data(self, request):
@@ -595,11 +595,11 @@ class ProtocoloAutorizacaoTeletrabalhoAdmin(admin.ModelAdmin):
         if request.user.groups.filter(name='CIGT'):
             return super().get_queryset(request)
         if request.user.groups.filter(name='CHEFIAS'):
-            despachos_cigt_servidores = ParecerCIGT.objects.filter(
+            despachos_cigt_servidores = DespachoCIGTPlanoTrabalho.objects.filter(
                 plano_trabalho__manifestacao__chefia_imediata=request.user)
             despachos_cigt = {
                 despacho.pk for despacho in despachos_cigt_servidores}
-            despachos_cigt_chefia = ParecerCIGT.objects.filter(
+            despachos_cigt_chefia = DespachoCIGTPlanoTrabalho.objects.filter(
                 plano_trabalho__manifestacao__servidor=request.user)
             for despacho_cigt_chefia in despachos_cigt_chefia:
                 despachos_cigt.add(despacho_cigt_chefia)
@@ -689,7 +689,7 @@ class DespachoEncaminhaAvaliacaoAdmin(admin.ModelAdmin):
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if not request.user.is_superuser:
             if db_field.name == 'despacho_cigt':
-                kwargs["queryset"] = ParecerCIGT.objects.filter(adicionado_por=request.user)  # noqa E501
+                kwargs["queryset"] = DespachoCIGTPlanoTrabalho.objects.filter(adicionado_por=request.user)  # noqa E501
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_queryset(self, request):
@@ -742,7 +742,7 @@ class DespachoRetornoAvaliacaoAdmin(admin.ModelAdmin):
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if not request.user.is_superuser:
             if db_field.name == 'despacho_cigt':
-                kwargs["queryset"] = ParecerCIGT.objects.filter(adicionado_por=request.user)  # noqa E501
+                kwargs["queryset"] = DespachoCIGTPlanoTrabalho.objects.filter(adicionado_por=request.user)  # noqa E501
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_queryset(self, request):
@@ -894,7 +894,7 @@ admin.site.register(PlanoTrabalho, PlanoTrabalhoAdmin)
 admin.site.register(AvaliacaoChefia, AvaliacaoChefiaAdmin)
 admin.site.register(ListaAtividades, ListaAtividadeAdmin)
 admin.site.register(AtividadesTeletrabalho, AtividadesTeletrabalhoAdmin)
-admin.site.register(ParecerCIGT, ParecerCIGTAdmin)
+admin.site.register(DespachoCIGTPlanoTrabalho, DespachoCIGTPlanoTrabalhoAdmin)
 admin.site.register(DespachoGenericoCIGT, DespachoGenericoAdmin)
 admin.site.register(DespachoArquivamentoManifestacaoCIGT, DespachoArquivamentoManifestacaoCIGTAdmin)  # noqa E501
 admin.site.register(ModeloDocumento, ModeloDocumentAdmin)

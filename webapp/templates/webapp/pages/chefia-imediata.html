@@ -10,7 +10,7 @@
 <ul>
     {% for manifestacao in manifestacoes_servidor %}
         {% if not manifestacao.aprovado_chefia %}
-            <li><a href={% url 'webapp:manifestacao_interesse_edit' manifestacao.pk %}>{{ manifestacao }}</a> [{{ manifestacao.aprovado_chefia }}]</li>
+            <li><a href={% url 'webapp:manifestacao_interesse_edit' manifestacao.pk %}>{{ manifestacao }}</a> {% if manifestacao.aprovado_chefia == 'aprovado' %}[APROVADO: CHEFIA]{% elif manifestacao.aprovado_chefia == 'reprovado' %}[REPROVADO: CHEFIA]{% else %}[PENDENTE: CHEFIA]{% endif %}</li>
         {% endif %}
     {% endfor %}
 </ul>
@@ -21,7 +21,7 @@
 <ul>
     {% for manifestacao in manifestacoes_subordinados %}
         {% if not manifestacao.aprovado_chefia %}
-            <li><a href={% url 'webapp:manifestacao_interesse_aprovado_chefia' manifestacao.pk %}>{{ manifestacao }}</a> [{{ manifestacao.aprovado_chefia }}]</li>
+            <li><a href={% url 'webapp:manifestacao_interesse_aprovado_chefia' manifestacao.pk %}>{{ manifestacao }}</a> {% if manifestacao.aprovado_chefia == 'aprovado' %}[APROVADO: CHEFIA]{% elif manifestacao.aprovado_chefia == 'reprovado' %}[REPROVADO: CHEFIA]{% else %}[PENDENTE: CHEFIA]{% endif %}</li>
         {% endif %}
     {% endfor %}
 </ul>
@@ -31,7 +31,7 @@
 <ul>
     {% for manifestacao in manifestacoes_subordinados %}
         {% if manifestacao.aprovado_chefia == 'aprovado' %}
-            <li><a href={% url 'webapp:manifestacao_interesse_aprovado_chefia' manifestacao.pk %}>{{ manifestacao }}</a> [{{ manifestacao.aprovado_chefia }}]</li>
+            <li><a href={% url 'webapp:manifestacao_interesse_aprovado_chefia' manifestacao.pk %}>{{ manifestacao }}</a> {% if manifestacao.aprovado_chefia == 'aprovado' %}[APROVADO: CHEFIA]{% elif manifestacao.aprovado_chefia == 'reprovado' %}[REPROVADO: CHEFIA]{% else %}[PENDENTE: CHEFIA]{% endif %}</li>
         {% endif %}
     {% endfor %}
 </ul>
@@ -41,7 +41,7 @@
 <ul>
     {% for manifestacao in manifestacoes_subordinados %}
         {% if manifestacao.aprovado_chefia == 'reprovado' %}
-            <li><a href={% url 'webapp:manifestacao_interesse_aprovado_chefia' manifestacao.pk %}>{{ manifestacao }}</a> [{{ manifestacao.aprovado_chefia }}]</li>
+            <li><a href={% url 'webapp:manifestacao_interesse_aprovado_chefia' manifestacao.pk %}>{{ manifestacao }}</a> {% if manifestacao.aprovado_chefia == 'aprovado' %}[APROVADO: CHEFIA]{% elif manifestacao.aprovado_chefia == 'reprovado' %}[REPROVADO: CHEFIA]{% else %}[PENDENTE: CHEFIA]{% endif %}</li>
         {% endif %}
     {% endfor %}
 </ul>

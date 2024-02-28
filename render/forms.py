@@ -1,5 +1,6 @@
 from django import forms
-from django.forms import ModelForm, inlineformset_factory
+from django.core.exceptions import ValidationError
+from django.forms import BaseInlineFormSet, ModelForm, inlineformset_factory
 
 from authentication.models import User
 
@@ -141,11 +142,41 @@ class AtividadesTeletrabalhoForm(ModelForm):
         )
 
 
+class CustomPeriodoTeletrabalhoFormset(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        for form in self.forms:
+            cleaned_data = form.cleaned_data
+            data_fim = cleaned_data.get('data_fim')
+            data_inicio = cleaned_data.get('data_inicio')
+            if not data_fim > data_inicio:
+                raise forms.ValidationError(
+                    "A data final não pode ser anterior à data inicial!")
+            return cleaned_data
+
+
 PeriodoTeletrabalhoFormSet = inlineformset_factory(
     PlanoTrabalho,
     PeriodoTeletrabalho,
-    form=PeriodoTeletrabalhoForm,
+    fields=(
+        'plano_trabalho',
+        'data_inicio',
+        'data_fim',
+    ),
     extra=1,
+    can_delete=False
+)
+
+
+PeriodoTeletrabalhoFormSetCreate = inlineformset_factory(
+    PlanoTrabalho,
+    PeriodoTeletrabalho,
+    fields=(
+        'data_inicio',
+        'data_fim',
+    ),
+    formset=CustomPeriodoTeletrabalhoFormset,
+    extra=3,
     can_delete=False
 )
 

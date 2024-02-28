@@ -1,8 +1,10 @@
+import calendar
 import os
 from datetime import date
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.forms import inlineformset_factory
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, render
@@ -14,15 +16,17 @@ from render.forms import (AtividadesTeletrabalhoForm, AutorizacoesExcecoesForm,
                           DeclaracaoNaoEnquadramentoVedacoesForm,
                           ManifestacaoInteresseAprovadoChefiaForm,
                           ManifestacaoInteresseForm, PeriodoTeletrabalhoForm,
-                          PlanoTrabalhoForm,
+                          PeriodoTeletrabalhoFormSetCreate, PlanoTrabalhoForm,
                           PlanoTrabalhoFormAprovadoChefiaForm,
                           PlanoTrabalhoFormAprovadoCIGTForm,
                           ProtocoloAutorizacaoTeletrabalhoForm, UserForm)
 from render.models import (AtividadesTeletrabalho, AutorizacoesExcecoes,
-                           AvaliacaoChefia, DeclaracaoNaoEnquadramentoVedacoes,
-                           ListaPostosTrabalho, ManifestacaoInteresse,
-                           ModeloDocumento, ParecerCIGT, PeriodoTeletrabalho,
-                           PlanoTrabalho, PortariasPublicadasDOE,
+                           AvaliacaoChefia, ComissaoInterna,
+                           DeclaracaoNaoEnquadramentoVedacoes,
+                           DespachoCIGTPlanoTrabalho, ListaPostosTrabalho,
+                           ManifestacaoInteresse, ModeloDocumento, Numeracao,
+                           PeriodoTeletrabalho, PlanoTrabalho,
+                           PortariasPublicadasDOE,
                            ProtocoloAutorizacaoTeletrabalho, Setor, Unidade)
 
 
@@ -199,9 +203,17 @@ def declaracao_nao_enquadramento_create(request):
                 return HttpResponseBadRequest("not allowed")
             obj.adicionado_por = request.user
             obj.modificado_por = request.user
-            obj.modelo = ModeloDocumento.objects.get(
+            modelo_aprovacao_excecao = ModeloDocumento.objects.get(nome_modelo="APROVACAO EXCECAO DIRETOR")  # noqa E501
+            modelo_declaracao = ModeloDocumento.objects.get(
                 nome_modelo='DECLARACAO NAO ENQUADRAMENTO VEDACOES')
+            obj.modelo = modelo_declaracao
             obj.save()
+
+            if not obj.cargo_chefia_direcao:
+                if not AutorizacoesExcecoes.objects.filter(declaracao=obj):
+                    AutorizacoesExcecoes.objects.create(
+                        declaracao=obj, modelo=modelo_aprovacao_excecao)
+
             messages.info(request, "Declaração cadastrada com sucesso!")
             return redirect(reverse('webapp:declaracao_nao_enquadramento'))
 
@@ -282,10 +294,10 @@ def plano_trabalho_create(request):
     # assim como a sua chefia imediata
 
     form = PlanoTrabalhoForm(user=request.user)
-    PeriodoTeletrabalhoFormSet = inlineformset_factory(
-        PlanoTrabalho, PeriodoTeletrabalho, fields=("data_inicio", "data_fim")
-    )
-    periodos_formset = PeriodoTeletrabalhoFormSet()
+    # PeriodoTeletrabalhoFormSet = inlineformset_factory(
+    #     PlanoTrabalho, PeriodoTeletrabalho, fields=("data_inicio", "data_fim")
+    # )
+    periodos_formset = PeriodoTeletrabalhoFormSetCreate()
     AtividadesTeletrabalhoFormSet = inlineformset_factory(
         PeriodoTeletrabalho, AtividadesTeletrabalho, fields=(
             "periodo", "atividade", "meta_qualitativa", "tipo_meta_quantitativa", "meta_quantitativa", "cumprimento", "justificativa_nao_cumprimento",)
@@ -308,18 +320,48 @@ def plano_trabalho_create(request):
             form.save_m2m()
 
             # associa todos os períodos ao plano de trabalho salvo
-            periodos_formset = PeriodoTeletrabalhoFormSet(
+            periodos_formset = PeriodoTeletrabalhoFormSetCreate(
                 request.POST, instance=obj)
+
+            # import ipdb
+            # ipdb.set_trace()
+
             if periodos_formset.is_valid():
-                periodos_salvos = periodos_formset.save()
+                periodos_salvos = periodos_formset.save(commit=False)
+                periodos_salvos_set = set()
 
-            # associa todas as atividades a todos os períodos salvos
+                for periodo_salvo in periodos_salvos:
+                    for periodo in periodo_salvo.year_months_periodo():
+                        periodos_salvos_set.add(periodo)
 
-            for obj in periodos_salvos:
+                del (periodos_salvos)
+
+                periodos_salvos_set = list(periodos_salvos_set)
+                periodos_salvos_set.sort()
+            else:
+                # temos que validar que a data final de cada período
+                # é maior que a data inicial de cada período.
+                # aqui criamos um redirecionamento para exibir o erro
+                return HttpResponse('Data final não pode ser anterior à data inicial!')
+
+            for periodo in periodos_salvos_set:
+                last_day_month = calendar.monthrange(
+                    periodo.year, periodo.month)[1]
+                data_fim = date(periodo.year, periodo.month, last_day_month)
+                obj = PeriodoTeletrabalho.objects.create(
+                    plano_trabalho=periodos_formset.instance,
+                    data_inicio=periodo,
+                    data_fim=data_fim
+                )
+                # associa todas as atividades a todos os períodos salvos
                 atividades_formset = AtividadesTeletrabalhoFormSet(
                     request.POST, instance=obj)
                 if atividades_formset.is_valid():
                     atividades_formset.save()
+                else:
+                    # se escrevermos validações para o formset
+                    # das atividades, redirecionamos aqui.
+                    return HttpResponse('Problema na validação das atividades!')
 
             messages.info(request, "Plano de Trabalho cadastrado com sucesso!")
             return redirect(reverse('webapp:plano_trabalho'))
@@ -414,9 +456,23 @@ def plano_trabalho_aprovado_chefia(request, pk):
 def plano_trabalho_aprovado_cigt(request, pk):
     # garante que apenas o usuário registrado como do grupo CIGT
     # possa aprovar o plano de trabalho
+
+    # substituir o signals
+    # DespachoCIGTPlanoTrabalho
+    # ProtocoloAutorizacaoTeletrabalho
+
+    # criar o despachocigtplanodetrabalho e o protocoloautorizacaoteletrabralho
+
+    try:
+        membro_cigt = ComissaoInterna.objects.get(
+            user=request.user)
+    except ComissaoInterna.DoesNotExist:
+        return HttpResponse("USUÁRIO NÃO PERTENCE A TABELA COMISSÃO INTERNA CIGT")
+
     if request.user.groups.filter(name="CIGT"):
         plano_trabalho = PlanoTrabalho.objects.get(pk=pk)
-        form_instance = PlanoTrabalhoForm(instance=plano_trabalho)
+        form_instance = PlanoTrabalhoForm(
+            instance=plano_trabalho, user=request.user)
         form = PlanoTrabalhoFormAprovadoCIGTForm(instance=plano_trabalho)
         if request.method == 'POST':
             form = PlanoTrabalhoFormAprovadoCIGTForm(
@@ -426,10 +482,34 @@ def plano_trabalho_aprovado_cigt(request, pk):
                 obj.modificado_por = request.user
                 obj.usuario_cigt_aprovacao = request.user
                 obj.save()
+
                 # eliminar o signals para criar os objetos após a
                 # aprovação da CIGT. fazer com que os objetos sejam
                 # criados aqui na view.
+                if obj.aprovado_cigt == 'aprovado':
+
+                    if not DespachoCIGTPlanoTrabalho.objects.filter(plano_trabalho=obj):
+                        modelo_plano_trabalho = ModeloDocumento.objects.get(nome_modelo="PARECER PLANO DE TRABALHO CIGT")  # noqa E501
+                        modelo_protocolo_autorizacao = ModeloDocumento.objects.get(nome_modelo="PROTOCOLO AUTORIZACAO TELETRABALHO")  # noqa E501
+
+                        # cria DespachoCIGTPlanoTrabalho
+                        despacho_cigt_plano_trabalho = DespachoCIGTPlanoTrabalho.objects.create(
+                            plano_trabalho=obj,
+                            modelo=modelo_plano_trabalho,
+                            adicionado_por=request.user,
+                            modificado_por=request.user,
+                            membro_cigt=membro_cigt,
+                            numeracao=Numeracao.get_ultimo_numero()
+                        )
+                        # cria ProtocoloAutorizacaoTeletrabalho
+                        ProtocoloAutorizacaoTeletrabalho.objects.create(
+                            despacho_cigt=despacho_cigt_plano_trabalho,
+                            publicado_doe='nao_publicado',
+                            modelo=modelo_protocolo_autorizacao,
+                            adicionado_por=request.user,
+                            modificado_por=request.user)
                 return redirect(reverse('webapp:cigt'))
+
         context = {
             'plano_trabalho': plano_trabalho,
             'form': form,
@@ -446,6 +526,9 @@ def plano_trabalho_delete(request, pk):
     # usar o messages.
     planos_trabalho = PlanoTrabalho.objects.all()
 
+    plano_trabalho = PlanoTrabalho.objects.get(pk=pk)
+    plano_trabalho.delete()
+
     context = {
         'planos_trabalho': planos_trabalho
     }
@@ -455,21 +538,33 @@ def plano_trabalho_delete(request, pk):
 @login_required
 def periodo_teletrabalho(request, pk):
     # note que pk é a chave primária do plano de trabalho
-    PeriodoTeletrabalhoFormSet = inlineformset_factory(
-        PlanoTrabalho, PeriodoTeletrabalho, fields=("data_inicio", "data_fim")
-    )
-    plano_trabalho = PlanoTrabalho.objects.get(pk=pk)
-    formset = PeriodoTeletrabalhoFormSet(instance=plano_trabalho)
+    # PeriodoTeletrabalhoFormSet = inlineformset_factory(
+    #     PlanoTrabalho, PeriodoTeletrabalho, fields=("data_inicio", "data_fim")
+    # )
+    # plano_trabalho = PlanoTrabalho.objects.get(pk=pk)
+    # formset = PeriodoTeletrabalhoFormSet(instance=plano_trabalho)
+    # if request.method == 'POST':
+    #     formset = PeriodoTeletrabalhoFormSet(
+    #         request.POST, instance=plano_trabalho)
+    #     if formset.is_valid():
+    #         formset.save()
+    #         plano_trabalho = PlanoTrabalho.objects.get(pk=pk)
+    #         # formset = PeriodoTeletrabalhoFormSet(instance=plano_trabalho)
+    #         return redirect(reverse('webapp:plano_trabalho_edit', kwargs={'pk': pk}))
+    # context = {
+    #     'formset': formset,
+    # }
+    obj = PeriodoTeletrabalho.objects.get(pk=pk)
+    form = PeriodoTeletrabalhoForm(instance=obj)
+
     if request.method == 'POST':
-        formset = PeriodoTeletrabalhoFormSet(
-            request.POST, instance=plano_trabalho)
-        if formset.is_valid():
-            formset.save()
-            plano_trabalho = PlanoTrabalho.objects.get(pk=pk)
-            # formset = PeriodoTeletrabalhoFormSet(instance=plano_trabalho)
-            return redirect(reverse('webapp:plano_trabalho_edit', kwargs={'pk': pk}))
+        form = PeriodoTeletrabalhoForm(request.POST, instance=obj)
+        if form.is_valid():
+            obj = form.save()
+            return redirect(reverse('webapp:plano_trabalho_edit', kwargs={'pk': obj.plano_trabalho_id}))
+
     context = {
-        'formset': formset,
+        'form': form
     }
     return render(request, 'webapp/pages/periodo-teletrabalho-form.html', context)
 
@@ -484,21 +579,37 @@ def periodo_teletrabalho_delete(request, pk):
 @login_required
 def atividade_teletrabalho(request, pk):
     # note que pk é a chave primária do plano de trabalho
-    AtividadesTeletrabalhoFormSet = inlineformset_factory(
-        PlanoTrabalho, AtividadesTeletrabalho, fields=(
-            "atividade", "meta_qualitativa", "tipo_meta_quantitativa", "meta_quantitativa")
-    )
-    plano_trabalho = PlanoTrabalho.objects.get(pk=pk)
-    formset = AtividadesTeletrabalhoFormSet(instance=plano_trabalho)
+    # AtividadesTeletrabalhoFormSet = inlineformset_factory(
+    #     PlanoTrabalho, AtividadesTeletrabalho, fields=(
+    #         "atividade", "meta_qualitativa", "tipo_meta_quantitativa", "meta_quantitativa")
+    # )
+    # plano_trabalho = PlanoTrabalho.objects.get(pk=pk)
+    # formset = AtividadesTeletrabalhoFormSet(instance=plano_trabalho)
+    # if request.method == 'POST':
+    #     formset = AtividadesTeletrabalhoFormSet(
+    #         request.POST, instance=plano_trabalho)
+    #     if formset.is_valid():
+    #         formset.save()
+    #         return redirect(reverse('webapp:plano_trabalho_edit', kwargs={'pk': pk}))
+
+    # context = {
+    #     'formset': formset,
+    # }
+
+    obj = AtividadesTeletrabalho.objects.get(pk=pk)
+    form = AtividadesTeletrabalhoForm(instance=obj)
+
     if request.method == 'POST':
-        formset = AtividadesTeletrabalhoFormSet(
-            request.POST, instance=plano_trabalho)
-        if formset.is_valid():
-            formset.save()
-            return redirect(reverse('webapp:plano_trabalho_edit', kwargs={'pk': pk}))
+        form = AtividadesTeletrabalhoForm(request.POST, instance=obj)
+        if form.is_valid():
+            obj = form.save()
+            periodo_id = obj.periodo.id
+            plano_trabalho_id = PeriodoTeletrabalho.objects.get(
+                id=periodo_id).plano_trabalho_id
+            return redirect(reverse('webapp:plano_trabalho_edit', kwargs={'pk': plano_trabalho_id}))
 
     context = {
-        'formset': formset,
+        'form': form,
     }
     return render(request, 'webapp/pages/atividades-teletrabalho-form.html', context)
 
@@ -509,6 +620,16 @@ def atividade_teletrabalho_delete(request, pk):
     plano_trabalho_id = instance.periodo.plano_trabalho.id
     instance.delete()
     return redirect(reverse('webapp:plano_trabalho_edit', kwargs={'pk': plano_trabalho_id}))
+
+
+@login_required
+def atividade_cumprimento(request, pk_avaliacao, pk_atividade,  cumprimento):
+    instance = AtividadesTeletrabalho.objects.get(pk=pk_atividade)
+    instance.cumprimento = cumprimento
+    instance.save()
+    # import ipdb
+    # ipdb.set_trace()
+    return redirect(reverse('webapp:avaliacao_atividades_list', kwargs={'pk': pk_avaliacao}))
 
 
 @login_required
@@ -571,7 +692,7 @@ def cigt(request):
 
 @login_required
 def encaminhar_avaliacoes_cigt(request):
-    # garante que apenas usuários do grupo GABINETE
+    # garante que apenas usuários do grupo CIGT
     # possam acessar a view
     if request.user.groups.filter(name='CIGT'):
         avaliacoes_encaminhadas = []
@@ -589,8 +710,6 @@ def encaminhar_avaliacoes_cigt(request):
         # registrar se o servidor saiu do teletrabalho
         for protocolo_autorizacao in ProtocoloAutorizacaoTeletrabalho.objects.all():
             for avaliacao in protocolo_autorizacao.encaminha_pedido_avaliacao():
-                import ipdb
-                ipdb.set_trace()
                 avaliacoes_encaminhadas.append(avaliacao)
         context = {
             'avaliacoes_encaminhadas': avaliacoes_encaminhadas,
@@ -692,7 +811,7 @@ def chefia_imediata(request):
 @login_required
 def avaliacoes_chefia(request):
     if request.user.groups.filter(name='CHEFIAS'):
-        pareceres_cigt = ParecerCIGT.objects.filter(
+        pareceres_cigt = DespachoCIGTPlanoTrabalho.objects.filter(
             plano_trabalho__manifestacao__chefia_imediata=request.user)
         avaliacoes_chefia = AvaliacaoChefia.objects.filter(
             encaminhamento_avaliacao_cigt__despacho_cigt__in=pareceres_cigt)
@@ -704,12 +823,12 @@ def avaliacoes_chefia(request):
 
 
 @login_required
-def avaliacao_chefia_edit(request, pk):
+def avaliacao_atividades_list(request, pk):
     # garante que apenas usuários com grupo CHEFIAS
     # possam fazer a avaliação
     if request.user.groups.filter(name='CHEFIAS'):
         avaliacao = AvaliacaoChefia.objects.get(pk=pk)
-        pareceres_cigt = ParecerCIGT.objects.filter(
+        pareceres_cigt = DespachoCIGTPlanoTrabalho.objects.filter(
             plano_trabalho__manifestacao__chefia_imediata=request.user)
         avaliacoes_chefia = AvaliacaoChefia.objects.filter(
             encaminhamento_avaliacao_cigt__despacho_cigt__in=pareceres_cigt)
@@ -717,6 +836,106 @@ def avaliacao_chefia_edit(request, pk):
         # interesse possa fazer a avalicação
         if not avaliacoes_chefia.filter(pk=pk):
             return HttpResponseBadRequest('proibido-avaliacao-chefia')
+
+        plano_trabalho = avaliacao.get_plano_trabalho()
+        periodo_para_avaliacao = avaliacao.get_periodo_para_avaliacao()
+
+        # import ipdb
+        # ipdb.set_trace()
+
+        # problema -> periodo_para_avaliacao
+        # resolver: se o periodo for maior que um um mês, o filtro não vai retornar nada
+        # exemplo: periodo 1/1/2024 a 1/5/2024
+        # porque o período de avaliacao é sempre mensal
+        # pensar como resolver isso
+        #
+
+        # talvez para garantir as avaliações mensais devemos criar apenas períodos mensais
+        # se o usuário colocar um período maior que um mês, dividimos em meses e gravamos
+        # tudo para controlar por mês posteriormente.
+
+        ### SOLUÇÃO ###
+        # é só fazer uma validação para o usuário não conseguir colocar mais de um mês no form
+        # para cada entrada
+
+        periodos_para_avaliacao = avaliacao.get_periodos_para_avaliacao()
+        atividades_para_avaliacao = avaliacao.get_atividades_para_avaliacao()
+
+        context = {
+            'plano_trabalho': plano_trabalho,
+            'periodo_para_avaliacao': periodo_para_avaliacao,
+            'periodos_para_avaliacao': periodos_para_avaliacao,
+            'atividades_para_avaliacao': atividades_para_avaliacao,
+            'avaliacao': AvaliacaoChefia.objects.get(pk=pk),
+            'pk_avaliacao': pk,
+        }
+
+        avaliacao.verifica_avaliacoes_no_periodo()
+
+        return render(request, 'webapp/pages/avaliacao-chefia-atividades-list.html', context)
+
+
+@login_required
+def finalizar_avaliacao(request, pk):
+    # Criar uma função que verifique se a avaliação já foi finalizada.
+    # Caso já tenha sido finalizada, criar um log em uma tabela espefícica
+    # para salvar o estado anterior. Nessa tabela de Log, criar um campo
+    # para justificativa da alteração da avaliacação.
+
+    avaliacao = AvaliacaoChefia.objects.get(pk=pk)
+    avaliacao.finalizar_avaliacao = True
+    avaliacao.save()
+    return redirect(reverse('webapp:avaliacoes_chefia'))
+
+
+@login_required
+def avaliacao_chefia_atividade(request, pk):
+    periodo = PeriodoTeletrabalho.objects.get(pk=pk)
+    AtividadesTeletrabalhoFormSet = inlineformset_factory(
+        PeriodoTeletrabalho, AtividadesTeletrabalho, fields=(
+            "periodo", "atividade", "meta_qualitativa", "tipo_meta_quantitativa", "meta_quantitativa", "cumprimento", "justificativa_nao_cumprimento"),
+        extra=0, min_num=1)
+    formset = AtividadesTeletrabalhoFormSet(
+        instance=periodo)
+
+    if request.method == 'POST':
+        formset = AtividadesTeletrabalhoFormSet(request.POST, instance=periodo)
+        if formset.is_valid():
+            formset.save()
+
+            # verificar o cumprimento total, parcial ou descumprimento
+
+            return redirect(reverse('webapp:avaliacoes_chefia'))
+
+    context = {
+        'formset': formset
+    }
+    return render(request, 'webapp/pages/avaliacao-chefia-atividade-form.html', context)
+
+
+@login_required
+def avaliacao_chefia_edit(request, pk):
+    # garante que apenas usuários com grupo CHEFIAS
+    # possam fazer a avaliação
+    if request.user.groups.filter(name='CHEFIAS'):
+        avaliacao = AvaliacaoChefia.objects.get(pk=pk)
+        pareceres_cigt = DespachoCIGTPlanoTrabalho.objects.filter(
+            plano_trabalho__manifestacao__chefia_imediata=request.user)
+        avaliacoes_chefia = AvaliacaoChefia.objects.filter(
+            encaminhamento_avaliacao_cigt__despacho_cigt__in=pareceres_cigt)
+        # garante que apenas a chefia imediata apontada na manifestação de
+        # interesse possa fazer a avalicação
+        if not avaliacoes_chefia.filter(pk=pk):
+            return HttpResponseBadRequest('proibido-avaliacao-chefia')
+
+        atividades_para_avaliacao = avaliacao.get_atividades_para_avaliacao()
+
+        AtividadesTeletrabalhoFormSet = inlineformset_factory(
+            PeriodoTeletrabalho, AtividadesTeletrabalho, fields=(
+                "periodo", "atividade", "meta_qualitativa", "tipo_meta_quantitativa", "meta_quantitativa", "cumprimento", "justificativa_nao_cumprimento"),
+            extra=0, min_num=1)
+        formset = AtividadesTeletrabalhoFormSet(
+            instance=atividades_para_avaliacao.first().periodo)
 
         form = AvaliacaoChefiaForm(instance=avaliacao)
         if request.method == 'POST':
@@ -727,8 +946,10 @@ def avaliacao_chefia_edit(request, pk):
                 obj.save()
                 return redirect(reverse('webapp:avaliacoes_chefia'))
         context = {
+            'atividades_para_avaliacao': atividades_para_avaliacao,
             'avaliacao': avaliacao,
-            'form': form
+            'form': form,
+            'formset': formset,
         }
         return render(request, 'webapp/pages/avaliacao-chefia-form.html', context)
 

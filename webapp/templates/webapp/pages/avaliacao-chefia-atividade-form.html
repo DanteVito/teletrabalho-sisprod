@@ -4,15 +4,16 @@
 
 {% block content %}
 
-<h2>Atividades Teletrabalho</h2>
+<h2>Avaliação Chefia Imediata</h2>
+<h3>Atividade</h3>
 
-{{ request.user.name }}
-
+<br>
 <form method="POST">
     {% csrf_token %}
-    {{ form }}    
+    {{ formset }}
     <input type="submit" value="SALVAR">
-
 </form>
+<br>
+
 
 {% endblock%}

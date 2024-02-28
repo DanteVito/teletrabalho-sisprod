@@ -27,7 +27,7 @@
     {% elif tipo_form == 'edit' %}
     
     {% for periodo in periodos_teletrabalho %}
-        <p><a href="{% url 'webapp:periodo_teletrabalho' periodo.plano_trabalho_id %}">{{ periodo }} plano_trabalho_id: {{ periodo.plano_trabalho_id }}</a> - <a href="{% url 'webapp:periodo_teletrabalho_delete' periodo.pk %}">excluir</a></p>
+        <p><a href="{% url 'webapp:periodo_teletrabalho' periodo.pk %}">{{ periodo }} plano_trabalho_id: {{ periodo.plano_trabalho_id }} período_id: {{ periodo.id}}</a> - <a href="{% url 'webapp:periodo_teletrabalho_delete' periodo.pk %}">excluir</a></p>
         {% endfor %}
     {% endif %}
 
@@ -36,7 +36,7 @@
         {{ atividades_formset }}
     {% elif tipo_form == 'edit' %}
         {% for atividade in atividades_teletrabalho %}
-        <p><a href="{% url 'webapp:atividade_teletrabalho' atividade.periodo_id %}">{{ atividade }} - período_id: {{ atividade.periodo_id }}</a> - <a href="{% url 'webapp:atividade_teletrabalho_delete' atividade.pk %}">excluir</a></p>
+        <p><a href="{% url 'webapp:atividade_teletrabalho' atividade.pk %}">{{ atividade }} - período_id: {{ atividade.periodo_id }} - atividade_id {{ atividade.id }}</a> - <a href="{% url 'webapp:atividade_teletrabalho_delete' atividade.pk %}">excluir</a></p>
         {% endfor %}
     {% endif %}
 
