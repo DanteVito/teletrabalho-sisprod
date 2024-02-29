@@ -12,7 +12,7 @@ from django.urls import reverse
 
 from authentication.models import User
 from render.forms import (AtividadesTeletrabalhoForm, AutorizacoesExcecoesForm,
-                          AvaliacaoChefiaForm,
+                          AvaliacaoChefiaFinalizaForm, AvaliacaoChefiaForm,
                           DeclaracaoNaoEnquadramentoVedacoesForm,
                           ManifestacaoInteresseAprovadoChefiaForm,
                           ManifestacaoInteresseForm, PeriodoTeletrabalhoForm,
@@ -861,16 +861,24 @@ def avaliacao_atividades_list(request, pk):
         periodos_para_avaliacao = avaliacao.get_periodos_para_avaliacao()
         atividades_para_avaliacao = avaliacao.get_atividades_para_avaliacao()
 
+        form = AvaliacaoChefiaFinalizaForm(instance=avaliacao)
+
+        if request.method == 'POST':
+            form = AvaliacaoChefiaFinalizaForm(
+                request.POST, instance=avaliacao)
+            if form.is_valid():
+                form.save()
+                return redirect(reverse('webapp:avaliacoes_chefia'))
+
         context = {
             'plano_trabalho': plano_trabalho,
             'periodo_para_avaliacao': periodo_para_avaliacao,
             'periodos_para_avaliacao': periodos_para_avaliacao,
             'atividades_para_avaliacao': atividades_para_avaliacao,
-            'avaliacao': AvaliacaoChefia.objects.get(pk=pk),
+            'avaliacao': avaliacao,
             'pk_avaliacao': pk,
+            'form': form,
         }
-
-        avaliacao.verifica_avaliacoes_no_periodo()
 
         return render(request, 'webapp/pages/avaliacao-chefia-atividades-list.html', context)
 
@@ -882,10 +890,17 @@ def finalizar_avaliacao(request, pk):
     # para salvar o estado anterior. Nessa tabela de Log, criar um campo
     # para justificativa da alteração da avaliacação.
 
-    avaliacao = AvaliacaoChefia.objects.get(pk=pk)
-    avaliacao.finalizar_avaliacao = True
-    avaliacao.save()
-    return redirect(reverse('webapp:avaliacoes_chefia'))
+    form = AvaliacaoChefiaFinalizaForm()
+
+    if request.method == 'POST':
+        form = AvaliacaoChefiaFinalizaForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect(reverse('webapp:avaliacoes_chefia'))
+
+    # avaliacao = AvaliacaoChefia.objects.get(pk=pk)
+    # avaliacao.finalizar_avaliacao = True
+    # avaliacao.save()
 
 
 @login_required

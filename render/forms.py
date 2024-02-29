@@ -210,3 +210,9 @@ class AvaliacaoChefiaForm(ModelForm):
         model = AvaliacaoChefia
         fields = ('atestado_cumprimento_metas',
                   'justificativa_nao_cumprimento', )
+
+
+class AvaliacaoChefiaFinalizaForm(ModelForm):
+    class Meta:
+        model = AvaliacaoChefia
+        fields = ('finalizar_avaliacao', )

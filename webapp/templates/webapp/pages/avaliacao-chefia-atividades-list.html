@@ -12,10 +12,12 @@
     <li>{{ atividade }} - cumprimento: {{ atividade.cumprimento }} <a href="{% url 'webapp:atividade_cumprimento' pk_avaliacao atividade.pk 'cumprida' %}">cumprida</a> - <a href="{% url 'webapp:atividade_cumprimento' pk_avaliacao atividade.pk 'nao_executada' %}">não cumprida</a> - <a href="{% url 'webapp:atividade_cumprimento' pk_avaliacao atividade.pk 'parcialmente_cumprida' %}">parcialmente cumprida</a></li>
     {% endfor %}
 </ul>
-
-<a href="{% url 'webapp:finalizar_avaliacao' pk_avaliacao %}">
+<form method="POST">
+    {% csrf_token %}
+    {{ form }}
     <input type="submit" value="finaliar avaliação">
-</a>
+</form>
+
 
 
 {% endblock%}

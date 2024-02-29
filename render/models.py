@@ -1722,23 +1722,30 @@ class AvaliacaoChefia(BaseModelGeneral):
         periodo = self.get_periodo_para_avaliacao()
         atividades = AtividadesTeletrabalho.objects.filter(periodo=periodo)
         count_cumpridas = 0
+        count_parcialmente_cumpridas = 0
         count = 0
         for atividade in atividades:
             count += 1
             print(atividade, atividade.cumprimento)
             if atividade.cumprimento == 'cumprida':
                 count_cumpridas += 1
+            elif atividade.cumprimento == 'parcialmente_cumprida':
+                count_parcialmente_cumpridas += 1
         if count_cumpridas == count:
-            self.atestado_cumprimento_metas = 1
-        elif count_cumpridas == 0:
-            self.atestado_cumprimento_metas = 3
-        else:
-            self.atestado_cumprimento_metas = 2
-        if count == 1:
+            # self.atestado_cumprimento_metas = 1
+            return 1
+        elif count_cumpridas == 0 and count_parcialmente_cumpridas == 0:
+            # self.atestado_cumprimento_metas = 3
+            return 3
+        elif count == 1:
             if count_cumpridas == 0:
-                self.atestado_cumprimento_metas = 2
+                # self.atestado_cumprimento_metas = 2
+                return 2
+        else:
+            # self.atestado_cumprimento_metas = 2
+            return 2
+
         print(self.atestado_cumprimento_metas)
-        self.save()
 
     def verifica_avaliacoes(self):
         """
@@ -1890,8 +1897,8 @@ class ModelChangeLogsModel(models.Model):
     timestamp = models.DateTimeField(null=False, blank=True)
 
     class Meta:
-        verbose_name = "Logs autorizaçãos"
-        verbose_name_plural = "Admin | Logs autorizações"
+        verbose_name = "Log"
+        verbose_name_plural = "Admin | Logs"
 
 
 _TEMPLATES = [
@@ -1902,10 +1909,30 @@ _TEMPLATES = [
     DespachoRetornoAvaliacao,
 ]
 
-_LOG_MODELS = [
-    ManifestacaoInteresse,
-    DeclaracaoNaoEnquadramentoVedacoes,
-]
+
+@receiver(pre_save, sender=AvaliacaoChefia, weak=False)
+def log_finalizar_avaliacao(sender, **kwargs):
+    """
+    Registra o histórico de aprovações das avaliações
+    """
+
+    instance = kwargs['instance']
+
+    if instance.finalizar_avaliacao:
+        old_avaliacao = sender.objects.get(id=instance.id)
+        old_value = old_avaliacao.atestado_cumprimento_metas
+        new_value = old_avaliacao.verifica_avaliacoes_no_periodo()
+        instance.atestado_cumprimento_metas = new_value
+        data = {
+            'user_id': instance.modificado_por.id,
+            'table_name': sender._meta.model_name,
+            'table_row': 'atestado_cumprimento_metas',
+            'action': 'changed',
+            'old_value': str(old_value),
+            'new_value': str(new_value),
+            'timestamp': timezone.now(),
+        }
+        ModelChangeLogsModel.objects.create(**data)
 
 
 for model in _TEMPLATES:
@@ -2096,10 +2123,6 @@ def cria_despacho_retorno_avaliacao_chefias_callback(sender, **kwargs):
     das chefias imediatas.
     """
 
-    #
-    # COLOCAR NA VIEW
-    #
-
     instance = kwargs['instance']
 
     modelo = ModeloDocumento.objects.get(nome_modelo="PARECER PLANO DE TRABALHO CIGT")  # noqa E501
@@ -2231,41 +2254,41 @@ def controle_mensal_teletrabalho_callback(sender, **kwargs):
                         controle_mensal_periodo.save()"""
 
 
-@receiver(post_save, sender=AtividadesTeletrabalho, weak=False)
-def cumprimento_avaliacao_das_atividades_chefia(sender, **kwargs):
-    instance = kwargs['instance']
-    created = kwargs['created']
+# @receiver(post_save, sender=AtividadesTeletrabalho, weak=False)
+# def cumprimento_avaliacao_das_atividades_chefia(sender, **kwargs):
+#     instance = kwargs['instance']
+#     created = kwargs['created']
 
-    # avaliacao.verifica_avaliacoes_no_periodo()
-    # import ipdb
-    # ipdb.set_trace()
+#     # avaliacao.verifica_avaliacoes_no_periodo()
+#     # import ipdb
+#     # ipdb.set_trace()
 
-    if not created:
-        avaliacao = instance.get_avaliacao_chefia()
-        if avaliacao:
-            print(f'cumprimento: { instance.cumprimento }')
-            atividades = avaliacao.get_atividades_para_avaliacao()
-            qtd_atividades = len(atividades)
-            count_atividades = 0
-            print(
-                f'pré -> avaliação chefia: { avaliacao.atestado_cumprimento_metas }')
-            for atividade in atividades:
-                if atividade.cumprimento == 'cumprida':
-                    count_atividades += 1
-                elif atividade.cumprimento == 'parcialmente_cumprida':
-                    count_atividades += .5
-                elif atividade.cumprimento == 'nao_executada':
-                    count_atividades += 0
+#     if not created:
+#         avaliacao = instance.get_avaliacao_chefia()
+#         if avaliacao:
+#             print(f'cumprimento: { instance.cumprimento }')
+#             atividades = avaliacao.get_atividades_para_avaliacao()
+#             qtd_atividades = len(atividades)
+#             count_atividades = 0
+#             print(
+#                 f'pré -> avaliação chefia: { avaliacao.atestado_cumprimento_metas }')
+#             for atividade in atividades:
+#                 if atividade.cumprimento == 'cumprida':
+#                     count_atividades += 1
+#                 elif atividade.cumprimento == 'parcialmente_cumprida':
+#                     count_atividades += .5
+#                 elif atividade.cumprimento == 'nao_executada':
+#                     count_atividades += 0
 
-            if count_atividades == qtd_atividades:
-                avaliacao.atestado_cumprimento_metas = 1
-                avaliacao.save()
-            elif count_atividades == 0:
-                avaliacao.atestado_cumprimento_metas = 3
-                avaliacao.save()
-            else:
-                avaliacao.atestado_cumprimento_metas = 2
-                avaliacao.save()
+#             if count_atividades == qtd_atividades:
+#                 avaliacao.atestado_cumprimento_metas = 1
+#                 avaliacao.save()
+#             elif count_atividades == 0:
+#                 avaliacao.atestado_cumprimento_metas = 3
+#                 avaliacao.save()
+#             else:
+#                 avaliacao.atestado_cumprimento_metas = 2
+#                 avaliacao.save()
 
-            print(
-                f'pos -> avaliação chefia: { avaliacao.atestado_cumprimento_metas }')
+#             print(
+#                 f'pos -> avaliação chefia: { avaliacao.atestado_cumprimento_metas }')
