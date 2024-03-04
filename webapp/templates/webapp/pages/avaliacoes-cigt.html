@@ -1,0 +1,26 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2>Avaliações</h2>
+
+<h3>Avaliações Pendentes</h3>
+<ul>
+    {% for avaliacao in avaliacoes %}
+        {% if not avaliacao.atestado_cumprimento_metas %}
+            <li>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}/{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }} - <a href="{% url 'webapp:avaliacao_atividades_list' avaliacao.pk %}">{{ avaliacao }}</a></li>    
+        {% endif %}
+    {% endfor %}
+</ul>
+
+<h3>Avaliações Realizadas</h3>
+<ul>
+    {% for avaliacao in avaliacoes %}
+        {% if avaliacao.atestado_cumprimento_metas %}
+            <li>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}/{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }} - <a href="{% url 'webapp:avaliacao_atividades_list' avaliacao.pk %}">{{ avaliacao }} - {{ avaliacao.atestado_cumprimento_metas }}</a></li>    
+        {% endif %}
+    {% endfor %}
+</ul>
+{% endblock%}

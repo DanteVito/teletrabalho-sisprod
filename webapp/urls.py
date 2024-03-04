@@ -62,6 +62,8 @@ urlpatterns = [
          views.autorizacao_excecao_delete, name='autorizacao_excecao_delete'),
     # cigt
     path('cigt/', views.cigt, name='cigt'),
+    path('avaliacoes-cigt/', views.avaliacoes_cigt,
+         name='avaliacoes_cigt'),
     path('encaminhar-avaliacoes-cigt/', views.encaminhar_avaliacoes_cigt,
          name='encaminhar_avaliacoes_cigt'),
     path('verificar-retorno-avaliacoes-cigt/', views.verificar_retorno_avaliacoes_cigt,

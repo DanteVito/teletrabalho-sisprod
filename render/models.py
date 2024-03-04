@@ -109,8 +109,8 @@ class BaseModelMethods(models.Model):
         verbose_months = {
             1: 'Janeiro',
             2: 'Fevereiro',
-            4: 'Março',
-            3: 'Abril',
+            3: 'Março',
+            4: 'Abril',
             5: 'Maio',
             6: 'Junho',
             7: 'Julho',

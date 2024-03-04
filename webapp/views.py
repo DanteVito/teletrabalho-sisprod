@@ -691,6 +691,15 @@ def cigt(request):
 
 
 @login_required
+def avaliacoes_cigt(request):
+    avaliacoes = AvaliacaoChefia.objects.all()
+    context = {
+        'avaliacoes': avaliacoes,
+    }
+    return render(request, 'webapp/pages/avaliacoes-cigt.html', context)
+
+
+@login_required
 def encaminhar_avaliacoes_cigt(request):
     # garante que apenas usuários do grupo CIGT
     # possam acessar a view
