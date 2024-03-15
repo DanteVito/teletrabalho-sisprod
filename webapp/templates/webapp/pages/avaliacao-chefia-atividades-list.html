@@ -4,20 +4,64 @@
 
 {% block content %}
 
-<h2>Avaliação Chefia Imediata - {{ avaliacao }} - {{ avaliacao.atestado_cumprimento_metas }}</h2>
-<h3>Plano de Trabalho: {{ plano_trabalho.manifestacao.servidor }}</h3>
-<h4>Períodos para avaliação: {{ periodo_para_avaliacao }}</h4>
-<ul>
-    {% for atividade in atividades_para_avaliacao %}
-    <li>{{ atividade }} - cumprimento: {{ atividade.cumprimento }} <a href="{% url 'webapp:atividade_cumprimento' pk_avaliacao atividade.pk 'cumprida' %}">cumprida</a> - <a href="{% url 'webapp:atividade_cumprimento' pk_avaliacao atividade.pk 'nao_executada' %}">não cumprida</a> - <a href="{% url 'webapp:atividade_cumprimento' pk_avaliacao atividade.pk 'parcialmente_cumprida' %}">parcialmente cumprida</a></li>
-    {% endfor %}
-</ul>
+<h2 class="title is-2">Chefia Imediata - Avaliação Mensal </h2>
+
+<table class="table is-striped is-hoverable">
+    <thead>
+        <tr>
+            <th>Ano</th>
+            <th>Mês</th>
+            <th>Servidor</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}</td>
+            <td>{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }}</td>
+            <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.servidor }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 class="title is-4">Atividades</h3>
+
 <form method="POST">
     {% csrf_token %}
-    {{ form }}
-    <input type="submit" value="finaliar avaliação">
-</form>
 
+    <table class="table is-striped is-hoverable">
+        <thead>
+            <tr>
+                <th>Atividade</th>
+                <th>Meta Quantitativa</th>
+                <th>Cumprimento</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for atividade, form_atividade in atividades_e_forms %}
+            <tr>
+                <td>{{ atividade }}</td>
+                <td>{{ atividade.meta_quantitativa }}</td>
+                <td>{{ form_atividade.cumprimento }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if user_chefia %}
+
+    <div class="field">
+        <label class="checkbox">
+          {{ form.finalizar_avaliacao }} Finalizar Avaliação
+        </label>
+    </div>
+    
+        <div class="field">
+            <div class="control">
+                <button class="button is-light">Finalizar Avaliação</button>
+            </div>
+        </div>
+    {% endif %}
+</form>
 
 
 {% endblock%}

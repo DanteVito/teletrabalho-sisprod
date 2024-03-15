@@ -4,23 +4,78 @@
 
 {% block content %}
 
-<h2>Dados Cadastrais</h2>
+<h2 class="title is-2">Dados Cadastrais</h2>
 
-NOME: {{ request.user.nome}}
+<div class="field">
+    <label for="" class="label">Grupos do Usuário</label>
+    {% for group in user_groups %}{{ group.name }} | {% endfor %}
+</div>
 
-CPF: {{ request.user.username}}
+<div class="field">
+    <label class="label">Nome</label>
+    <div class="control">
+        <input type="text" class="input" value="{{ request.user.nome}}" disabled>
+    </div>
+</div>
 
-RG: {{ request.user.rg}}
+<div class="field">
+    <label class="label">CPF</label>
+    <div class="control">
+        <input type="text" class="input" value="{{ request.user.username}}" disabled>
+    </div>
+</div>
 
-CARGO: {{ request.user.cargo}}
+<div class="field">
+    <label class="label">RG</label>
+    <div class="control">
+        <input type="text" class="input" value="{{ request.user.rg}}" disabled>
+    </div>
+</div>
+
+<div class="field">
+    <label class="label">Cargo</label>
+    <div class="control">
+        <input type="text" class="input" value="{{ request.user.cargo}}" disabled>
+    </div>
+</div>
 
 <form method="POST">
     {% csrf_token %}
-    {{ form.as_p }}
-    <input type="submit" value="Atualizar">
+
+    <div class="field">
+        <label for="" class="label">Ramal</label>
+        <div class="control">
+            {{ form.ramal }}
+        </div>
+    </div>
+
+    <div class="field">
+        <label for="" class="label">Celular</label>
+        <div class="control">
+            {{ form.celular }}
+        </div>
+    </div>
+
+    <div class="field">
+        <label for="" class="label">E-mail</label>
+        <div class="control">
+            {{ form.email }}
+        </div>
+    </div>
+
+    <div class="field">
+        <label for="" class="label">Cidade</label>
+        <div class="control">
+            {{ form.cidade }}
+        </div>
+    </div>
+
+    <div class="field">
+        <div class="control">
+            <button class="button is-light">Atualizar</button>
+        </div>
+    </div>
 
 </form>
-Grupos:
-{% for group in user_groups %}{{ group.name }} | {% endfor %}
 
 {% endblock%}

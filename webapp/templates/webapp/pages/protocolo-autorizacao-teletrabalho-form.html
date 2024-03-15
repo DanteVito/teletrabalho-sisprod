@@ -6,10 +6,35 @@
 
 <h2>Protocolo de Autorização do Teletrabalho</h2>
 
+<div class="field">
+    <label class="label">Despacho CIGT</label>
+    <div class="control">
+        <div class="select">{{ form_instance.despacho_cigt }}</div>
+    </div>
+</div>
+
 <form method="POST">
     {% csrf_token %}
-    {{ form.as_p }}
-    <input type="submit" value="SALVAR">
+    
+    <div class="field">
+        <label class="label">Protocolo (SID)</label>
+        <div class="control">
+            {{ form.sid }}
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Publicado DOE</label>
+        <div class="control">
+            <div class="select">{{ form.publicado_doe }}</div>
+        </div>
+    </div>
+    
+    <div class="field">
+        <div class="control">
+            <button class="button is-light">Salvar</button>
+        </div>
+    </div>
 
 </form>
 

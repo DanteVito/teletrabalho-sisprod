@@ -6,24 +6,67 @@
 
 {% if tipo_form == 'create' %}
 
-<h2>Criar Plano de Trabalho</h2>
+<h2 class="title is-2">Criar Plano de Trabalho</h2>
 
 {% elif tipo_form == 'edit' %}
 
-<h2>Editar Plano de Trabalho</h2>
-
-{{ request.user.name }}
+<h2 class="title is-2">Editar Plano de Trabalho</h2>
 
 {% endif %}
 
 <form method="POST">
     {% csrf_token %}
-    
-    <h3>Plano Trabalho</h3>
-    {{ form.as_p }}
-    <h4>Período</h4>
+
+    <div class="field">
+        <label class="label">Manifestação de Interesse</label>
+        <div class="control">
+            <div class="select">{{ form.manifestacao }}</div>
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Período de Comparecimento</label>
+        <div class="control">
+            {{ form.periodo_comparecimento }}
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Período de Acionamento</label>
+        <div class="control">
+            {{ form.periodo_acionamento }}
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Sistemas</label>
+        <div class="control">
+          <div class="select is-multiple">{{ form.sistemas }}</div>
+        </div>
+      </div>
+
+    <h4 class="title is-6">Período(s)</h4>
+
+    <hr>
+
     {% if tipo_form == 'create' %}
-        {{ periodos_formset }}
+    {{ periodos_formset.management_form }}
+    {% for form in periodos_formset %}
+    
+        <div class="field">
+            <label class="label">Data Inicial</label>
+            {{ form.data_inicio }}
+        </div>
+
+        <div class="field">
+            <label class="label">Data Final</label>
+            <div class="control">
+            {{ form.data_fim }}
+            </div>
+        </div>
+    
+        {% endfor %}
+        
     {% elif tipo_form == 'edit' %}
     
     {% for periodo in periodos_teletrabalho %}
@@ -31,16 +74,57 @@
         {% endfor %}
     {% endif %}
 
-    <h4>Atividades</h4>
+    <hr>
+
+    <h4 class="title is-6">Atividades</h4>
     {% if tipo_form == 'create' %}
-        {{ atividades_formset }}
+        {% comment %} {{ atividades_formset }} {% endcomment %}
+        {{ atividades_formset.management_form }}
+    {% for form in atividades_formset %}
+    
+        <div class="field">
+            <label class="label">Atividade</label>
+            <div class="control">
+                <div class="select">{{ form.atividade }}</div>
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="" class="label">Meta Qualitativa</label>
+            <div class="control">
+                {{ form.meta_qualitativa }}
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label">Tipo de Meta Quantitativa</label>
+            <div class="control">
+                <div class="select">{{ form.tipo_meta_quantitativa }}</div>
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="" class="label">Meta Quantitativa</label>
+            <div class="control">
+                {{ form.meta_quantitativa }}
+            </div>
+        </div>
+    
+        {% endfor %}
+
     {% elif tipo_form == 'edit' %}
         {% for atividade in atividades_teletrabalho %}
         <p><a href="{% url 'webapp:atividade_teletrabalho' atividade.pk %}">{{ atividade }} - período_id: {{ atividade.periodo_id }} - atividade_id {{ atividade.id }}</a> - <a href="{% url 'webapp:atividade_teletrabalho_delete' atividade.pk %}">excluir</a></p>
         {% endfor %}
     {% endif %}
 
-    <input type="submit" value="SALVAR">
+    <hr>
+
+    <div class="field">
+        <div class="control">
+            <button class="button is-light">Salvar</button>
+        </div>
+    </div>
 
 </form>
 

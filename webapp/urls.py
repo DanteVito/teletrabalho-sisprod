@@ -62,13 +62,27 @@ urlpatterns = [
          views.autorizacao_excecao_delete, name='autorizacao_excecao_delete'),
     # cigt
     path('cigt/', views.cigt, name='cigt'),
+
+    path('cigt/analisar-planos-trabalho', views.cigt_analisar_planos_trabalho,
+         name='cigt_analisar_planos_trabalho'),
+    path('cigt/analisar-protocolos-autorizacao', views.cigt_analisar_protocolos_autorizacao,
+         name='cigt_analisar_protocolos_autorizacao'),
+    path('cigt/analisar-avaliacoes-mensais', views.cigt_analisar_avaliacoes_mensais,
+         name='cigt_analisar_avaliacoes_mensais'),
+    path('cigt/controle-mensal-teletrabalho', views.cigt_controle_mensal_teletrabalho,
+         name='cigt_controle_mensal_teletrabalho'),
+    path('cigt/portarias-doe', views.cigt_portarias_doe, name='cigt_portarias_doe'),
+    path('cigt/portarias-doe/<int:pk>', views.cigt_portaria_doe_edit,
+         name="cigt_portaria_doe_edit"),
+    path('cigt/download-portarias-doe/<int:pk>', views.download_portaria_doe,
+         name="download_portaria_doe"),
     path('avaliacoes-cigt/', views.avaliacoes_cigt,
          name='avaliacoes_cigt'),
     path('encaminhar-avaliacoes-cigt/', views.encaminhar_avaliacoes_cigt,
          name='encaminhar_avaliacoes_cigt'),
     path('verificar-retorno-avaliacoes-cigt/', views.verificar_retorno_avaliacoes_cigt,
          name='verificar_retorno_avaliacoes_cigt'),
-    path('gerar_portaria_doe/<int:commit_doe>',
+    path('gerar_portaria_doe/',
          views.gerar_portaria_doe, name='gerar_portaria_doe'),
     # protocolos autotorizacao teletrabalho
     path('protocolos-autorizacao-teletrabalho/', views.protocolos_autorizacao_teletrabalho,
@@ -79,6 +93,15 @@ urlpatterns = [
     path('servidor/', views.servidor, name='servidor'),
     # chefia imediata
     path('chefia-imediata/', views.chefia_imediata, name='chefia_imediata'),
+    # avaliar manifestacoes interesse
+    path('chefia-imediata-manifestacoes-interesse/', views.chefia_imediata_analisar_manifestacoes,
+         name='chefia_imediata_analisar_manifestacoes'),
+    # avaliar planos de trabalho
+    path('chefia-imediata-planos-trabalho/', views.chefia_imediata_analisar_planos_trabalho,
+         name='chefia_imediata_analisar_planos_trabalho'),
+    # realizar avaliacoes mensais
+    path('chefia-imediata-avaliacoes-mensais/', views.chefia_imediata_realizar_avaliacoes_mensais,
+         name='chefia_imediata_realizar_avaliacoes_mensais'),
     # avaliacoes chefia imediata
     path('avaliacoes-chefia/', views.avaliacoes_chefia, name='avaliacoes_chefia'),
     path('avaliacoes-chefia/edit/<int:pk>',
@@ -91,5 +114,8 @@ urlpatterns = [
          name='finalizar_avaliacao'),
     # gabinete
     path('gabinete/', views.gabinete, name='gabinete'),
+    # download arquivos
+    path('download/<str:model>/<int:pk>',
+         views.download_docx, name='download_docx'),
 
 ]

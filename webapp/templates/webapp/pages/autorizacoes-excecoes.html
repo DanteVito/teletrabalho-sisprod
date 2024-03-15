@@ -4,35 +4,43 @@
 
 {% block content %}
 
-<h2>Autorizações Exceções</h2>
+<div class="content">
 
-<h3>Solicitações de Teletrabalho para Cargos de Chefia/Direção</h3>
-
-
-<h4>Pendentes</h4>
-
-{% for autorizacao in autorizacoes %}
-{% if not autorizacao.aprovado_gabinete %}
-    <li>{{ autorizacao }} - [{{ autorizacao.aprovado_gabinete }}] - <a href="{% url 'webapp:autorizacao_excecao_edit' autorizacao.pk %}">editar</a> - <a href={% url 'webapp:autorizacao_excecao_delete' autorizacao.pk %}>excluir</a></li>        
-{% endif %}
-{% endfor %}
-
-<h4>Aprovados</h4>
-
-{% for autorizacao in autorizacoes %}
-    {% if autorizacao.aprovado_gabinete == 'aprovado' %}
-        <li>{{ autorizacao }} - [{{ autorizacao.aprovado_gabinete }}] - <a href="{% url 'webapp:autorizacao_excecao_edit' autorizacao.pk %}">editar</a> - <a href={% url 'webapp:autorizacao_excecao_delete' autorizacao.pk %}>excluir</a></li>        
-    {% endif %}
-{% endfor %}
-
-<h4>Reprovados</h4>
-
-<ul>
-    {% for autorizacao in autorizacoes %}
-        {% if autorizacao.aprovado_gabinete == 'reprovado' %}
-        <li>{{ autorizacao }} - [{{ autorizacao.aprovado_gabinete }}] - <a href="{% url 'webapp:autorizacao_excecao_edit' autorizacao.pk %}">editar</a> - <a href={% url 'webapp:autorizacao_excecao_delete' autorizacao.pk %}>excluir</a></li>        
-        {% endif %}
-    {% endfor %}
-</ul>
+    <h2 class="title is-2">Análisar Solicitações de Teletrabalho para Chefias</h2>
+    
+    <h3 class="title is-4">Solicitações Cadastradas</h3>
+    
+    <table class="table is-striped is-hoverable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Unidade</th>
+                <th>Setor</th>
+                <th>Servidor</th>
+                <th>Função</th>
+                <th>Posto de Trabalho</th>
+                <th>Analisar</th>
+                <th>Deletar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for autorizacao in autorizacoes %}
+                <tr>
+                    <td><a href={% url "webapp:download_docx" "autorizacao-excecao" autorizacao.id %}>{{ autorizacao.id }}</a></td>
+                    <td>{{ autorizacao.declaracao.manifestacao.unidade }}</td>
+                    <td>{{ autorizacao.declaracao.manifestacao.setor }}</td>
+                    <td>{{ autorizacao.declaracao.manifestacao.servidor }}</td>
+                    <td>{{ autorizacao.declaracao.manifestacao.funcao }}</td>
+                    <td>{{ autorizacao.declaracao.manifestacao.posto_trabalho }}</td>
+                    <td>{% if autorizacao.aprovado_gabinete == 'aprovado' %}ACEITA{% elif autorizacao.aprovado_gabinete == 'reprovado' %}NÃO ACEITA{% else %}<a href={% url 'webapp:autorizacao_excecao_edit' autorizacao.pk %}>ANALISAR</a>{% endif %}</td>
+                    <td>{% if autorizacao.aprovado_gabinete == 'aprovado' %}X{% elif autorizacao.aprovado_gabinete == 'reprovado' %}X{% else %}<a href={% url 'webapp:autorizacao_excecao_edit' autorizacao.pk %}><a href="{% url 'webapp:autorizacao_excecao_delete' autorizacao.pk %}">deletar</a></a>{% endif %}</td>
+                    
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    
+</div>
 
 {% endblock%}

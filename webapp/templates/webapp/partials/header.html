@@ -1,21 +1,110 @@
-<ul>
-    <li><a href="{% url 'webapp:home' %}">SISCOT</a></li>
-    <li><a href="{% url 'webapp:servidor' %}">SERVIDOR</a></li>
-    {% if 'CHEFIAS' in request.user.get_group_set %}
-        <li><a href="{% url 'webapp:chefia_imediata' %}">CHEFIA IMEDIATA</a></li>
-    {% endif %}
-    {% if 'GABINETE' in request.user.get_group_set %}
-        <li><a href="{% url 'webapp:gabinete' %}">GABINETE</a></li>
-    {% endif %}
-    {% if 'CIGT' in request.user.get_group_set %}
-    <li><a href="{% url 'webapp:cigt' %}">CIGT</a></li>
-    {% endif %}
-</ul>
+<nav class="navbar is-transparent">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="https://127.0.0.1:8000/home/">
+        SISCOT
+      </a>
+      <div class="navbar-burger" data-target="navbarExampleTransparentExample">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+    <div id="navbarExampleTransparentExample" class="navbar-menu">
+      <div class="navbar-start">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="{% url 'webapp:servidor' %}">
+            Servidor
+          </a>
+          <div class="navbar-dropdown is-boxed">
+            <a class="navbar-item" href="{% url 'webapp:dados_cadastrais' %}">
+              Dados Cadastrais
+            </a>
+            <a class="navbar-item" href="{% url 'webapp:manifestacao_interesse' %}">
+              Manifestação de Interesse
+            </a>
+            <a class="navbar-item" href="{% url 'webapp:declaracao_nao_enquadramento' %}">
+              Declaração de Não Enquadramento nas Vedações
+            </a>
+            <a class="navbar-item" href="{% url 'webapp:plano_trabalho' %}">
+              Planos de Trabalho
+            </a>
+          </div>
+        </div>
+      </div>
+      {% if 'CHEFIAS' in request.user.get_group_set %}
+      <div class="navbar-start">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="{% url 'webapp:chefia_imediata' %}">
+            Chefia Imediata
+          </a>
+          <div class="navbar-dropdown is-boxed">
 
-<div>
-    username: {{ request.user.username }} 
-</div>
+            <a class="navbar-item" href="{% url 'webapp:chefia_imediata_analisar_manifestacoes' %}">
+              Analisar Manifestações de Interesse
+            </a>
+            <a class="navbar-item" href="{% url 'webapp:chefia_imediata_analisar_planos_trabalho' %}">
+              Analisar Planos de Trabalho
+            </a>
+            <a class="navbar-item" href="{% url 'webapp:chefia_imediata_realizar_avaliacoes_mensais' %}">
+              Realizar Avaliações Mensais
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
 
-<div>
-    <a href="{% url 'authentication:logout_view' %}">logout</a>
-</div>
+      {% if 'GABINETE' in request.user.get_group_set %}
+      <div class="navbar-start">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="{% url 'webapp:gabinete' %}">
+            Gabinete REPR
+          </a>
+          <div class="navbar-dropdown is-boxed">
+            <a class="navbar-item" href="{% url 'webapp:autorizacoes_excecoes' %}">
+              Analisar Solicitações das Chefias Imediatas
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if 'CIGT' in request.user.get_group_set %}
+      <div class="navbar-start">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="{% url 'webapp:cigt' %}">
+            CIGT
+          </a>
+          <div class="navbar-dropdown is-boxed">
+            <a class="navbar-item" href="{% url 'webapp:cigt_analisar_planos_trabalho' %}">
+              Analisar Planos de Trabalho
+            </a>
+            <a class="navbar-item" href="{% url 'webapp:cigt_analisar_protocolos_autorizacao' %}">
+                Protocolos de Autorização
+            </a>
+            <a class="navbar-item" href="{% url 'webapp:cigt_portarias_doe' %}">
+                Portarias DOE
+            </a>
+            <a class="navbar-item" href="{% url 'webapp:cigt_analisar_avaliacoes_mensais' %}">
+                Analisar Avaliações Mensais
+            </a>
+            <a class="navbar-item" href="{% url 'webapp:cigt_controle_mensal_teletrabalho' %}">
+                Controle Mensal Teletrabalho
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+  
+      <div class="navbar-end">
+        <div class="navbar-item">
+          <small>[ logado: {{ request.user.username }} ]</small>
+      </div>
+      <div class="buttons">
+          <a class="button is-light"
+          href="{% url 'authentication:logout_view' %}">
+          Logout
+          </a>
+      </div>
+      </div>
+    </div>
+  </nav>

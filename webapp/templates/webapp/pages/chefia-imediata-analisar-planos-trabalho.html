@@ -3,10 +3,9 @@
 {% block title%}Home{% endblock%}
 
 {% block content %}
-
 <div class="content">
 
-    <h2 class="title is-2">Plano de Trabalho </h2>
+    <h2 class="title is-2">Chefia - Analisar Planos de Trabalho </h2>
     
     <h3 class="title is-4">Planos de Trabalho Cadastrados</h3>
     
@@ -15,10 +14,8 @@
             <tr>
                 <th>ID</th>
                 <th>Servidor</th>
-                <th>Aprovado (Chefia)</th>
+                <th>Analisar (Chefia)</th>
                 <th>Aprovado (CIGT)</th>
-                <th>Editar</th>
-                <th>Deletar</th>
             </tr>
         </thead>
         <tbody>
@@ -26,17 +23,13 @@
                 <tr>
                     <td><a href={% url "webapp:download_docx" "plano-trabalho" plano_trabalho.id %}>{{ plano_trabalho.id }}</a></td>
                     <td>{{ plano_trabalho.manifestacao.servidor }}</td>
-                    <td>{% if plano_trabalho.aprovado_chefia == 'aprovado' %}SIM{% elif plano_trabalho.aprovado_chefia == 'reprovado' %}NÃO{% else %}PENDENTE{% endif %}</td>
+                    <td>{% if plano_trabalho.aprovado_chefia == 'aprovado' %}ACEITA{% elif plano_trabalho.aprovado_chefia == 'reprovado' %}NÃO ACEITA{% else %}<a href={% url 'webapp:plano_trabalho_aprovado_chefia' plano_trabalho.pk %}>ANALISAR</a>{% endif %}</td>
                     <td>{% if plano_trabalho.aprovado_cigt == 'aprovado' %}SIM{% elif plano_trabalho.aprovado_cigt == 'reprovado' %}NÃO{% else %}PENDENTE{% endif %}</td>
-                    <td><a href="{% url 'webapp:plano_trabalho_edit' plano_trabalho.pk %}">editar</a></td>
-                    <td><a href="{% url 'webapp:plano_trabalho_delete' plano_trabalho.pk %}">deletar</a></td>
                 </tr>
             {% endfor %}
         </tbody>
-    </table>
-    
-    <a href="{% url 'webapp:plano_trabalho_create' %}" class="button">[+] Cadastrar Plano de Trabalho</a>
+    </table>  
     
 </div>
 
-{% endblock%}
+{% endblock %}

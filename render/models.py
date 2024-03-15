@@ -203,6 +203,17 @@ class BaseModelMethods(models.Model):
         if save_input and docx.is_saved:
             self.save_file_input(tipo_doc=tipo_doc, file_type='docx')
 
+    def render_docx_custom_tpl(self, tipo_doc: str, path_tpl: str, context: dict):
+        """
+        Com este método, injetamos o contexto context especificado no arquivo
+        de template com path path_tpl e salvamos em path_file_docx_tp
+        """
+        docx = DocxTemplate(path_tpl)
+        docx.render(context)
+        path_file_docx_temp = self.get_path_file_temp(tipo_doc=tipo_doc,  # noqa E501
+                                                      file_type='docx')
+        docx.save(path_file_docx_temp)
+
     def save_file_input(self, tipo_doc: str, file_type: str) -> None:
         """
         Método para fazer o input dos arquivos docx ou pdfs gerados no
@@ -350,9 +361,10 @@ class ManifestacaoInteresse(BaseModelGeneral):
     posto_trabalho_chefia = models.ForeignKey(ListaPostosTrabalho, related_name='%(app_label)s_%(class)s_posto_trabalho_chefia', on_delete=models.CASCADE)  # noqa E501
     aprovado_chefia = models.CharField(
         choices=_APROVACAO, max_length=16, null=True, blank=True)
+    justificativa_chefia = models.TextField()
 
     def __str__(self) -> str:
-        return f'{self.id} - {self.servidor} | {self.data_criacao.strftime("%d/%m/%Y")}'
+        return f'manifestação id:{self.id} - servidor:{self.servidor} | criação:{self.data_criacao.strftime("%d/%m/%Y")}'
 
     @classmethod
     def get_manifestacoes_subordinados(cls, chefia_imediata):
@@ -623,8 +635,9 @@ class PlanoTrabalho(BaseModelGeneral):
         return periodos
 
     def get_atividades_plano_trabalho(self):
+        periodos = PeriodoTeletrabalho.objects.filter(plano_trabalho=self.pk)
         atividades = AtividadesTeletrabalho.objects.filter(
-            plano_trabalho_id=self.id)
+            periodo__in=periodos)
         return atividades
 
     def get_context_docx(self):
@@ -1030,10 +1043,6 @@ class DespachoCIGTPlanoTrabalho(DespachoCIGTAbstract):
     def get_excecao_cargo_chefia_direcao(self) -> bool:
         declaracao = DeclaracaoNaoEnquadramentoVedacoes.objects.filter(
             manifestacao=self.plano_trabalho.manifestacao).last()
-        autorizacao_excecao = AutorizacoesExcecoes.objects.get(
-            declaracao=declaracao)
-        if not autorizacao_excecao.aprovado_gabinete:
-            raise Exception("É preciso ter autorização do Diretor do Órgão!")
         if declaracao.cargo_chefia_direcao:
             return True
         return False
@@ -1043,8 +1052,14 @@ class DespachoCIGTPlanoTrabalho(DespachoCIGTAbstract):
             plano_trabalho=self.plano_trabalho)
         return periodos
 
+    def get_sid(self):
+        protocolo = ProtocoloAutorizacaoTeletrabalho.objects.get(
+            despacho_cigt_id=self.id)
+        return protocolo.sid
+
     def get_context_docx(self):
         context = {
+            'sid': self.get_sid(),
             'ano': self.ano,
             'numeracao': self.numeracao,
             'data': self.get_date(),
@@ -1426,14 +1441,17 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
             plano_trabalho=self.despacho_cigt.plano_trabalho)
         return periodos
 
-    def get_declaracao_nao_enquadramento(self):
-        declaracao_nao_enquadramento = DeclaracaoNaoEnquadramentoVedacoes.objects.get(
-            manifestacao_id=self.despacho_cigt.plano_trabalho.manifestacao.id)
+    def get_last_declaracao_nao_enquadramento(self):
+        declaracao_nao_enquadramento = DeclaracaoNaoEnquadramentoVedacoes.objects.filter(
+            manifestacao_id=self.despacho_cigt.plano_trabalho.manifestacao.id).last()
         return declaracao_nao_enquadramento
 
     def get_atividades_plano_trabalho(self):
+        plano_trabalho = self.despacho_cigt.plano_trabalho
+        periodos = PeriodoTeletrabalho.objects.filter(
+            plano_trabalho=plano_trabalho)
         atividades = AtividadesTeletrabalho.objects.filter(
-            plano_trabalho_id=self.despacho_cigt.plano_trabalho.id)
+            periodo__in=periodos)
         return atividades
 
     def get_context_docx(self):
@@ -1445,12 +1463,12 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
             'servidor': self.despacho_cigt.plano_trabalho.manifestacao.servidor,
             'funcao': self.despacho_cigt.plano_trabalho.manifestacao.funcao,
             # declaracao de nao enquadramento nas vedacoes
-            'estagio_probatorio': self.get_declaracao_nao_enquadramento().estagio_probatorio,
-            'cargo_chefia_direcao': self.get_declaracao_nao_enquadramento().cargo_chefia_direcao,
-            'penalidade_disciplinar': self.get_declaracao_nao_enquadramento().penalidade_disciplinar,
-            'justificativa_excecao': self.get_declaracao_nao_enquadramento().justificativa_excecao,
+            'estagio_probatorio': self.get_last_declaracao_nao_enquadramento().estagio_probatorio,
+            'cargo_chefia_direcao': self.get_last_declaracao_nao_enquadramento().cargo_chefia_direcao,
+            'penalidade_disciplinar': self.get_last_declaracao_nao_enquadramento().penalidade_disciplinar,
+            'justificativa_excecao': self.get_last_declaracao_nao_enquadramento().justificativa_excecao,
             # aprovacao gabinete
-            'aprovado_gabinete': AutorizacoesExcecoes.objects.filter(declaracao=self.get_declaracao_nao_enquadramento()),
+            'aprovado_gabinete': AutorizacoesExcecoes.objects.filter(declaracao=self.get_last_declaracao_nao_enquadramento()),
             # plano trabalho
             'posto_trabalho': self.despacho_cigt.plano_trabalho.manifestacao.posto_trabalho,
             'chefia_imediata': self.despacho_cigt.plano_trabalho.manifestacao.chefia_imediata,
@@ -1480,9 +1498,10 @@ class PortariasPublicadasDOE(BaseModelMethods):
     data_publicacao = models.DateField(null=True, blank=True)
     has_inclusoes = models.BooleanField()
     has_exclusoes = models.BooleanField()
+    diretor_em_exercicio = models.CharField(max_length=255)
 
     def __str__(self):
-        return f'Portaria REPR {self.id}-{self.numero}/{self.ano}'
+        return f'Portaria REPR {self.pk}-{self.numero}/{self.ano} ({self.data_publicacao})'
 
     def get_context_docx(self):
         inclusoes = ProtocoloAutorizacaoTeletrabalho.get_listagem_doe_csv(
@@ -1509,6 +1528,8 @@ class PortariasPublicadasDOE(BaseModelMethods):
         context = {
             'inclusoes': inclusoes['inclusao'],
             'exclusoes': exclusoes['exclusao'],
+            'data': self.get_date(),
+            'diretor_em_exercicio': '{{ diretor_em_exercicio }}',
         }
 
         return context
@@ -1704,7 +1725,6 @@ class AvaliacaoChefia(BaseModelGeneral):
         # o histórico salvo
         #
         periodo = self.get_periodo_para_avaliacao()
-        atividades_pk = set()
         atividades = AtividadesTeletrabalho.objects.filter(
             periodo=periodo)
         return atividades
@@ -1782,15 +1802,18 @@ class AvaliacaoChefia(BaseModelGeneral):
 
     def get_atividades_plano_trabalho(self):
         plano_trabalho = self.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho
+
+        periodos = PeriodoTeletrabalho.objects.filter(
+            plano_trabalho=plano_trabalho)
         atividades = AtividadesTeletrabalho.objects.filter(
-            plano_trabalho_id=plano_trabalho.id)
+            periodo__in=periodos)
         return atividades
 
     def get_context_docx(self):
         context = {
             'servidor': self.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.servidor,
             'chefia': self.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.chefia_imediata,
-            'atividades': self.get_atividades_plano_trabalho(),
+            'atividades': self.get_atividades_para_avaliacao(),
             'mes': self.encaminhamento_avaliacao_cigt.mes_avaliacao,
             'ano': self.encaminhamento_avaliacao_cigt.ano_avaliacao,
             'atestado_cumprimento_metas': self.atestado_cumprimento_metas,

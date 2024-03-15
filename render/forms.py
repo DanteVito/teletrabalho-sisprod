@@ -7,7 +7,7 @@ from authentication.models import User
 from .models import (AtividadesTeletrabalho, AutorizacoesExcecoes,
                      AvaliacaoChefia, DeclaracaoNaoEnquadramentoVedacoes,
                      ManifestacaoInteresse, PeriodoTeletrabalho, PlanoTrabalho,
-                     ProtocoloAutorizacaoTeletrabalho)
+                     PortariasPublicadasDOE, ProtocoloAutorizacaoTeletrabalho)
 
 
 class UserForm(ModelForm):
@@ -19,6 +19,12 @@ class UserForm(ModelForm):
             'email',
             'cidade',
         )
+        widgets = {
+            'ramal': forms.NumberInput(attrs={'class': 'input'}),
+            'celular': forms.TextInput(attrs={'class': 'input'}),
+            'email': forms.EmailInput(attrs={'class': 'input'}),
+            'cidade': forms.TextInput(attrs={'class': 'input'}),
+        }
 
 
 class ManifestacaoInteresseForm(ModelForm):
@@ -45,6 +51,10 @@ class ManifestacaoInteresseForm(ModelForm):
             'funcao_chefia',
             'posto_trabalho_chefia',
         )
+        widgets = {
+            'funcao': forms.TextInput(attrs={'class': 'input'}),
+            'funcao_chefia': forms.TextInput(attrs={'class': 'input'}),
+        }
 
 
 class ManifestacaoInteresseAprovadoChefiaForm(ModelForm):
@@ -52,7 +62,11 @@ class ManifestacaoInteresseAprovadoChefiaForm(ModelForm):
         model = ManifestacaoInteresse
         fields = (
             'aprovado_chefia',
+            'justificativa_chefia'
         )
+        widgets = {
+            'justificativa_chefia': forms.Textarea(attrs={'class': 'textarea', 'cols': '30', 'rows': '10', 'placeholder': 'Justificativa para aceitação/não aceitação ...'}),
+        }
 
 
 class DeclaracaoNaoEnquadramentoVedacoesForm(ModelForm):
@@ -77,6 +91,12 @@ class DeclaracaoNaoEnquadramentoVedacoesForm(ModelForm):
             'penalidade_disciplinar',
             'justificativa_excecao',
         )
+        widgets = {
+            'estagio_probatorio': forms.CheckboxInput(attrs={'class': 'checkbox'}),
+            'cargo_chefia_direcao': forms.CheckboxInput(attrs={'class': 'checkbox'}),
+            'penalidade_disciplinar': forms.CheckboxInput(attrs={'class': 'checkbox'}),
+            'justificativa_excecao': forms.Textarea(attrs={'class': 'textarea', 'cols': '30', 'rows': '10', 'placeholder': 'Justificativas para concessão de teletrabalho para ocupantes de cargo de chefia ou direção ...'}),
+        }
 
 
 class PlanoTrabalhoForm(ModelForm):
@@ -100,6 +120,10 @@ class PlanoTrabalhoForm(ModelForm):
             'periodo_acionamento',
             'sistemas',
         )
+        widgets = {
+            'periodo_comparecimento': forms.TextInput(attrs={'class': 'input'}),
+            'periodo_acionamento': forms.TextInput(attrs={'class': 'input'}),
+        }
 
 
 class PlanoTrabalhoFormAprovadoChefiaForm(ModelForm):
@@ -126,6 +150,10 @@ class PeriodoTeletrabalhoForm(ModelForm):
             'data_inicio',
             'data_fim',
         )
+        widgets = {
+            'data_inicio': forms.DateInput(attrs={'class': 'input'}),
+            'data_fim': forms.DateInput(attrs={}),
+        }
 
 
 class AtividadesTeletrabalhoForm(ModelForm):
@@ -164,7 +192,7 @@ PeriodoTeletrabalhoFormSet = inlineformset_factory(
         'data_fim',
     ),
     extra=1,
-    can_delete=False
+    can_delete=False,
 )
 
 
@@ -177,17 +205,34 @@ PeriodoTeletrabalhoFormSetCreate = inlineformset_factory(
     ),
     formset=CustomPeriodoTeletrabalhoFormset,
     extra=3,
-    can_delete=False
+    can_delete=False,
+    widgets={
+        'data_inicio': forms.DateInput(attrs={'class': 'input', 'type': 'date'}),
+        'data_fim': forms.DateInput(attrs={'class': 'input', 'type': 'date'}),
+    }
 )
 
 
 AtividadesTeletrabalhoFormSet = inlineformset_factory(
     PeriodoTeletrabalho,
     AtividadesTeletrabalho,
-    form=AtividadesTeletrabalhoForm,
-    extra=1,
-    can_delete=False
-)
+    fields=(
+        "periodo", "atividade", "meta_qualitativa", "tipo_meta_quantitativa", "meta_quantitativa", "cumprimento", "justificativa_nao_cumprimento",),
+    widgets={
+        'meta_qualitativa': forms.TextInput(attrs={'class': 'input'}),
+        'meta_quantitativa': forms.TextInput(attrs={'class': 'input'}),
+    })
+
+# AtividadesTeletrabalhoFormSet = inlineformset_factory(
+#     PeriodoTeletrabalho,
+#     AtividadesTeletrabalho,
+#     form=AtividadesTeletrabalhoForm,
+#     extra=1,
+#     can_delete=False,
+#     widgets={
+#         'meta_qualitativa': forms.TextInput(attrs={'class': 'input'}),
+#     }
+# )
 
 
 class AutorizacoesExcecoesForm(ModelForm):
@@ -199,10 +244,27 @@ class AutorizacoesExcecoesForm(ModelForm):
         )
 
 
+class AutorizacoesExcecoesAprovaForm(ModelForm):
+    class Meta:
+        model = AutorizacoesExcecoes
+        fields = (
+            'aprovado_gabinete',
+        )
+
+
 class ProtocoloAutorizacaoTeletrabalhoForm(ModelForm):
     class Meta:
         model = ProtocoloAutorizacaoTeletrabalho
         fields = ('sid', 'publicado_doe', )
+        widgets = {
+            'sid': forms.TextInput(attrs={'class': 'input'})
+        }
+
+
+class ProtocoloAutorizacaoTeletrabalhoAprovaForm(ModelForm):
+    class Meta:
+        model = ProtocoloAutorizacaoTeletrabalho
+        fields = ('despacho_cigt', 'sid', 'publicado_doe', )
 
 
 class AvaliacaoChefiaForm(ModelForm):
@@ -216,3 +278,24 @@ class AvaliacaoChefiaFinalizaForm(ModelForm):
     class Meta:
         model = AvaliacaoChefia
         fields = ('finalizar_avaliacao', )
+
+
+class AtividadeCumprimentoForm(ModelForm):
+    class Meta:
+        model = AtividadesTeletrabalho
+        fields = ('cumprimento', )
+        widgets = {
+            'cumprimento': forms.Select(attrs={'class': 'input'})
+        }
+
+
+class PortariaDoeEditForm(ModelForm):
+    class Meta:
+        model = PortariasPublicadasDOE
+        fields = ('ano', 'numero', 'diretor_em_exercicio', 'data_publicacao')
+        widgets = {
+            'ano': forms.NumberInput(attrs={'class': 'input'}),
+            'numero': forms.NumberInput(attrs={'class': 'input'}),
+            'diretor_em_exercicio': forms.TextInput(attrs={'class': 'input'}),
+            'data_publicacao': forms.DateInput(attrs={'class': 'input', 'type': 'date'}),
+        }

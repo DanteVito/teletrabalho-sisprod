@@ -5,7 +5,7 @@
 {% block content %}
 <div class="content">
 
-    <h2 class="title is-2">Manifestação de Interesse </h2>
+    <h2 class="title is-2">Chefia - Manifestacação de Interesse </h2>
     
     <h3 class="title is-4">Manifestações Cadastradas</h3>
     
@@ -18,29 +18,23 @@
                 <th>Servidor</th>
                 <th>Função</th>
                 <th>Posto de Trabalho</th>
-                <th>Aprovado</th>
-                <th>Editar</th>
-                <th>Deletar</th>
+                <th>Analisar</th>
             </tr>
         </thead>
         <tbody>
-            {% for manifestacao in manifestacoes_servidor %}
+            {% for manifestacao in manifestacoes_subordinados %}
                 <tr>
-                    <td>{{ manifestacao.id }}</td>
+                    <td><a href={% url "webapp:download_docx" "manifestacao" manifestacao.id %}>{{ manifestacao.id }}</a></td>
                     <td>{{ manifestacao.unidade }}</td>
                     <td>{{ manifestacao.setor }}</td>
                     <td>{{ manifestacao.servidor }}</td>
                     <td>{{ manifestacao.funcao }}</td>
                     <td>{{ manifestacao.posto_trabalho }}</td>
-                    <td>{% if manifestacao.aprovado_chefia == 'aprovado' %} <a href={% url "webapp:download_docx" "manifestacao" manifestacao.pk %}>SIM</a>{% elif manifestacao.aprovado_chefia == 'reprovado' %}NÃO{% else %}PENDENTE{% endif %}</td>
-                    <td><a href="{% url 'webapp:manifestacao_interesse_edit' manifestacao.pk %}">editar</a></td>
-                    <td><a href="{% url 'webapp:manifestacao_interesse_delete' manifestacao.pk %}">deletar</a></td>
+                    <td>{% if manifestacao.aprovado_chefia == 'aprovado' %}ACEITA{% elif manifestacao.aprovado_chefia == 'reprovado' %}NÃO ACEITA{% else %}<a href={% url 'webapp:manifestacao_interesse_aprovado_chefia' manifestacao.pk %}>ANALISAR</a>{% endif %}</td>
                 </tr>
             {% endfor %}
         </tbody>
-    </table>
-    
-    <a href="{% url 'webapp:manifestacao_interesse_create' %}" class="button">[+] Cadastrar Nova Manifestação de Interesse</a>
+    </table>    
     
 </div>
 

@@ -11,7 +11,10 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from authentication.models import User
-from render.forms import (AtividadesTeletrabalhoForm, AutorizacoesExcecoesForm,
+from render.forms import (AtividadeCumprimentoForm, AtividadesTeletrabalhoForm,
+                          AtividadesTeletrabalhoFormSet,
+                          AutorizacoesExcecoesAprovaForm,
+                          AutorizacoesExcecoesForm,
                           AvaliacaoChefiaFinalizaForm, AvaliacaoChefiaForm,
                           DeclaracaoNaoEnquadramentoVedacoesForm,
                           ManifestacaoInteresseAprovadoChefiaForm,
@@ -19,9 +22,12 @@ from render.forms import (AtividadesTeletrabalhoForm, AutorizacoesExcecoesForm,
                           PeriodoTeletrabalhoFormSetCreate, PlanoTrabalhoForm,
                           PlanoTrabalhoFormAprovadoChefiaForm,
                           PlanoTrabalhoFormAprovadoCIGTForm,
+                          PortariaDoeEditForm,
+                          ProtocoloAutorizacaoTeletrabalhoAprovaForm,
                           ProtocoloAutorizacaoTeletrabalhoForm, UserForm)
 from render.models import (AtividadesTeletrabalho, AutorizacoesExcecoes,
                            AvaliacaoChefia, ComissaoInterna,
+                           ControleMensalTeletrabalho,
                            DeclaracaoNaoEnquadramentoVedacoes,
                            DespachoCIGTPlanoTrabalho, ListaPostosTrabalho,
                            ManifestacaoInteresse, ModeloDocumento, Numeracao,
@@ -47,7 +53,11 @@ def dados_cadastrais(request):
         form = UserForm(request.POST, instance=request.user)
         if form.is_valid():
             form.save()
-        return redirect(reverse('webapp:servidor'))
+            return redirect(reverse('webapp:servidor'))
+
+        for _, error_list in form.errors.items():
+            for e in error_list:
+                messages.error(request, e)
 
     context = {
         'form': form,
@@ -84,6 +94,10 @@ def manifestacao_interesse_create(request):
             obj.save()
             messages.info(request, "Manifestação cadastrada com sucesso!")
             return redirect(reverse('webapp:manifestacao_interesse'))
+
+        for _, error_list in form.errors.items():
+            for e in error_list:
+                messages.error(request, e)
     context = {
         'form': form,
         'tipo_form': 'create',
@@ -115,6 +129,11 @@ def manifestacao_interesse_edit(request, pk):
             obj.save()
             messages.info(request, "Manifestação alterada com sucesso!")
             return redirect(reverse('webapp:manifestacao_interesse'))
+
+        for _, error_list in form.errors.items():
+            for e in error_list:
+                messages.error(request, e)
+
     context = {
         'tipo_form': 'edit',
         'form': form,
@@ -147,6 +166,11 @@ def manifestacao_interesse_aprovado_chefia(request, pk):
             obj.modificado_por = request.user
             obj.save()
             return redirect(reverse('webapp:chefia_imediata'))
+
+        for _, error_list in form.errors.items():
+            for e in error_list:
+                messages.error(request, e)
+
     context = {
         'manifestacao': manifestacao,
         'form': form,
@@ -179,12 +203,28 @@ def manifestacao_interesse_delete(request, pk):
 
 @login_required
 def declaracao_nao_enquadramento(request):
-    declaracaoes = DeclaracaoNaoEnquadramentoVedacoes.objects.filter(
+    declaracoes = DeclaracaoNaoEnquadramentoVedacoes.objects.filter(
         manifestacao__servidor=request.user)
+    autorizacoes_excecoes = AutorizacoesExcecoes.objects.filter(
+        declaracao__in=declaracoes)
+    pk_autorizacoes_excecoes = set([a.pk for a in autorizacoes_excecoes])
+    pk_declaracoes_autorizacoes = set([
+        a.declaracao.pk for a in autorizacoes_excecoes])
+    pk_declaracoes = set([d.pk for d in declaracoes])
+    pk_declaracoes_autorizadas = pk_declaracoes.difference(
+        pk_declaracoes_autorizacoes)
+    declaracoes_autorizadas = DeclaracaoNaoEnquadramentoVedacoes.objects.filter(
+        pk__in=pk_declaracoes_autorizadas)
+
+    declaracoes_pendentes_gab = DeclaracaoNaoEnquadramentoVedacoes.objects.filter(
+        pk__in=pk_declaracoes_autorizacoes)
 
     context = {
-        'declaracoes': declaracaoes
+        'declaracoes': declaracoes_autorizadas,
+        'autorizacoes_excecoes': autorizacoes_excecoes,
+        'declaracoes_autorizacoes': zip(declaracoes_pendentes_gab, autorizacoes_excecoes)
     }
+
     return render(request, 'webapp/pages/declaracao-nao-enquadramento.html', context)
 
 
@@ -217,6 +257,10 @@ def declaracao_nao_enquadramento_create(request):
             messages.info(request, "Declaração cadastrada com sucesso!")
             return redirect(reverse('webapp:declaracao_nao_enquadramento'))
 
+        for _, error_list in form.errors.items():
+            for e in error_list:
+                messages.error(request, e)
+
     context = {
         'tipo_form': 'create',
         'form': form
@@ -245,6 +289,10 @@ def declaracao_nao_enquadramento_edit(request, pk):
             obj.save()
             messages.info(request, "Declaração alterada com sucesso!")
             return redirect(reverse('webapp:declaracao_nao_enquadramento'))
+
+        for _, error_list in form.errors.items():
+            for e in error_list:
+                messages.error(request, e)
 
     context = {
         'tipo_form': 'edit',
@@ -298,13 +346,14 @@ def plano_trabalho_create(request):
     #     PlanoTrabalho, PeriodoTeletrabalho, fields=("data_inicio", "data_fim")
     # )
     periodos_formset = PeriodoTeletrabalhoFormSetCreate()
-    AtividadesTeletrabalhoFormSet = inlineformset_factory(
-        PeriodoTeletrabalho, AtividadesTeletrabalho, fields=(
-            "periodo", "atividade", "meta_qualitativa", "tipo_meta_quantitativa", "meta_quantitativa", "cumprimento", "justificativa_nao_cumprimento",)
-    )
+    # AtividadesTeletrabalhoFormSet = inlineformset_factory(
+    #     PeriodoTeletrabalho, AtividadesTeletrabalho, fields=(
+    #         "periodo", "atividade", "meta_qualitativa", "tipo_meta_quantitativa", "meta_quantitativa", "cumprimento", "justificativa_nao_cumprimento",)
+    # )
     atividades_formset = AtividadesTeletrabalhoFormSet()
     if request.method == 'POST':
         form = PlanoTrabalhoForm(request.POST, user=request.user)
+
         if form.is_valid():
             obj = form.save(commit=False)
             obj.servidor = request.user
@@ -322,9 +371,6 @@ def plano_trabalho_create(request):
             # associa todos os períodos ao plano de trabalho salvo
             periodos_formset = PeriodoTeletrabalhoFormSetCreate(
                 request.POST, instance=obj)
-
-            # import ipdb
-            # ipdb.set_trace()
 
             if periodos_formset.is_valid():
                 periodos_salvos = periodos_formset.save(commit=False)
@@ -356,6 +402,7 @@ def plano_trabalho_create(request):
                 # associa todas as atividades a todos os períodos salvos
                 atividades_formset = AtividadesTeletrabalhoFormSet(
                     request.POST, instance=obj)
+
                 if atividades_formset.is_valid():
                     atividades_formset.save()
                 else:
@@ -365,6 +412,10 @@ def plano_trabalho_create(request):
 
             messages.info(request, "Plano de Trabalho cadastrado com sucesso!")
             return redirect(reverse('webapp:plano_trabalho'))
+
+        for _, error_list in form.errors.items():
+            for e in error_list:
+                messages.error(request, e)
 
     context = {
         'tipo_form': 'create',
@@ -408,6 +459,10 @@ def plano_trabalho_edit(request, pk):
             messages.info(request, "Plano de Trabalho alterado com sucesso!")
             return redirect(reverse('webapp:plano_trabalho'))
 
+        for _, error_list in form.errors.items():
+            for e in error_list:
+                messages.error(request, e)
+
     periodos_teletrabalho = PeriodoTeletrabalho.objects.filter(
         plano_trabalho=instance)
     atividades_teletrabalho = AtividadesTeletrabalho.objects.filter(
@@ -444,10 +499,23 @@ def plano_trabalho_aprovado_chefia(request, pk):
             obj.modificado_por = request.user
             obj.save()
             return redirect(reverse('webapp:chefia_imediata'))
+
+        for _, error_list in form.errors.items():
+            for e in error_list:
+                messages.error(request, e)
+
+    periodos_teletrabalho = PeriodoTeletrabalho.objects.filter(
+        plano_trabalho=plano_trabalho)
+    atividades_teletrabalho = AtividadesTeletrabalho.objects.filter(
+        periodo__in=periodos_teletrabalho)
+
     context = {
         'plano_trabalho': plano_trabalho,
         'form': form,
         'form_instance': form_instance,
+        'periodos_teletrabalho': periodos_teletrabalho,
+        'atividades_teletrabalho': atividades_teletrabalho,
+
     }
     return render(request, 'webapp/pages/plano-trabalho-aprovado-chefia.html', context)
 
@@ -510,10 +578,22 @@ def plano_trabalho_aprovado_cigt(request, pk):
                             modificado_por=request.user)
                 return redirect(reverse('webapp:cigt'))
 
+            for _, error_list in form.errors.items():
+                for e in error_list:
+                    messages.error(request, e)
+
+        periodos_teletrabalho = PeriodoTeletrabalho.objects.filter(
+            plano_trabalho=plano_trabalho)
+        atividades_teletrabalho = AtividadesTeletrabalho.objects.filter(
+            periodo__in=periodos_teletrabalho)
+
         context = {
             'plano_trabalho': plano_trabalho,
             'form': form,
             'form_instance': form_instance,
+            'periodos_teletrabalho': periodos_teletrabalho,
+            'atividades_teletrabalho': atividades_teletrabalho,
+
         }
         return render(request, 'webapp/pages/plano-trabalho-aprovado-cigt.html', context)
     return HttpResponseBadRequest("proibido")
@@ -563,6 +643,10 @@ def periodo_teletrabalho(request, pk):
             obj = form.save()
             return redirect(reverse('webapp:plano_trabalho_edit', kwargs={'pk': obj.plano_trabalho_id}))
 
+        for _, error_list in form.errors.items():
+            for e in error_list:
+                messages.error(request, e)
+
     context = {
         'form': form
     }
@@ -608,6 +692,10 @@ def atividade_teletrabalho(request, pk):
                 id=periodo_id).plano_trabalho_id
             return redirect(reverse('webapp:plano_trabalho_edit', kwargs={'pk': plano_trabalho_id}))
 
+        for _, error_list in form.errors.items():
+            for e in error_list:
+                messages.error(request, e)
+
     context = {
         'form': form,
     }
@@ -627,8 +715,7 @@ def atividade_cumprimento(request, pk_avaliacao, pk_atividade,  cumprimento):
     instance = AtividadesTeletrabalho.objects.get(pk=pk_atividade)
     instance.cumprimento = cumprimento
     instance.save()
-    # import ipdb
-    # ipdb.set_trace()
+
     return redirect(reverse('webapp:avaliacao_atividades_list', kwargs={'pk': pk_avaliacao}))
 
 
@@ -651,14 +738,26 @@ def autorizacao_excecao_edit(request, pk):
     # possam acessar a view
     if request.user.groups.filter(name='GABINETE'):
         autorizacao = AutorizacoesExcecoes.objects.get(pk=pk)
-        form = AutorizacoesExcecoesForm(instance=autorizacao)
+
+        form_instance = AutorizacoesExcecoesForm(
+            instance=autorizacao)
+        form = AutorizacoesExcecoesAprovaForm(instance=autorizacao)
+
         if request.method == 'POST':
-            form = AutorizacoesExcecoesForm(request.POST, instance=autorizacao)
+            form = AutorizacoesExcecoesAprovaForm(
+                request.POST, instance=autorizacao)
+
             if form.is_valid():
                 form.save()
                 return redirect(reverse('webapp:autorizacoes_excecoes'))
+
+        for _, error_list in form.errors.items():
+            for e in error_list:
+                messages.error(request, e)
+
         context = {
             'form': form,
+            'form_instance': form_instance,
         }
         return render(request, 'webapp/pages/autorizacao-excecao-form.html', context)
     return HttpResponseBadRequest("probido-gab")
@@ -688,6 +787,70 @@ def cigt(request):
         }
         return render(request, 'webapp/pages/cigt.html', context)
     return HttpResponseBadRequest("proibido-cigt")
+
+
+@login_required
+def cigt_analisar_planos_trabalho(request):
+    planos_trabalho = PlanoTrabalho.objects.filter(
+        manifestacao__chefia_imediata=request.user)
+    context = {
+        'planos_trabalho': planos_trabalho,
+    }
+    return render(request, 'webapp/pages/cigt-analisar-planos-trabalho.html', context)
+
+
+@login_required
+def cigt_analisar_protocolos_autorizacao(request):
+    protocolos = ProtocoloAutorizacaoTeletrabalho.objects.all()
+    context = {
+        'protocolos': protocolos,
+    }
+    return render(request, 'webapp/pages/cigt-analisar-protocolos-autorizacao.html', context)
+
+
+@login_required
+def cigt_analisar_avaliacoes_mensais(request):
+    avaliacoes = AvaliacaoChefia.objects.all()
+    context = {
+        'avaliacoes': avaliacoes,
+    }
+    return render(request, 'webapp/pages/cigt-analisar-avaliacoes-mensais.html', context)
+
+
+@login_required
+def cigt_portarias_doe(request):
+    portarias = PortariasPublicadasDOE.objects.all()
+    context = {
+        'portarias': portarias,
+    }
+    return render(request, 'webapp/pages/cigt-portarias-doe.html', context)
+
+
+@login_required
+def cigt_portaria_doe_edit(request, pk):
+    portaria = PortariasPublicadasDOE.objects.get(pk=pk)
+    form = PortariaDoeEditForm(instance=portaria)
+    if request.method == 'POST':
+        form = PortariaDoeEditForm(request.POST, instance=portaria)
+        if form.is_valid():
+            form.save()
+            return redirect(reverse('webapp:cigt_portarias_doe'))
+
+        for _, error_list in form.errors.items():
+            for e in error_list:
+                messages.error(request, e)
+
+    context = {'form': form}
+    return render(request, 'webapp/pages/cigt-portaria-doe-form.html', context)
+
+
+@login_required
+def cigt_controle_mensal_teletrabalho(request):
+    controle_mensal_objs = ControleMensalTeletrabalho.objects.all()
+    context = {
+        'controle_mensal_objs': controle_mensal_objs,
+    }
+    return render(request, 'webapp/pages/cigt-controle-mensal-teletrabalho.html', context)
 
 
 @login_required
@@ -723,7 +886,7 @@ def encaminhar_avaliacoes_cigt(request):
         context = {
             'avaliacoes_encaminhadas': avaliacoes_encaminhadas,
         }
-        return render(request, 'webapp/pages/encaminhar-avaliacoes-cigt.html', context)
+        return redirect(reverse('webapp:cigt_analisar_avaliacoes_mensais'))
     return HttpResponseBadRequest("proibido-cigt")
 
 
@@ -743,6 +906,20 @@ def verificar_retorno_avaliacoes_cigt(request):
     return HttpResponseBadRequest("proibido-cigt")
 
 
+# @login_required
+# def encaminhar_verificar_avaliacoes_cigt(request):
+#     if request.user.groups.filter(name='CIGT'):
+#         avaliacoes_pendentes = []
+#         for protocolo_autorizacao in ProtocoloAutorizacaoTeletrabalho.objects.all():
+#             for avaliacao in protocolo_autorizacao.verifica_avaliacoes():
+#                 avaliacoes_pendentes.append(avaliacao)
+#         context = {
+#             'avaliacoes_pendentes': avaliacoes_pendentes,
+#         }
+#         return render(request, 'webapp/pages/verificar-retorno-avaliacoes-cigt.html', context)
+#     return HttpResponseBadRequest("proibido-cigt")
+
+
 @login_required
 def protocolos_autorizacao_teletrabalho(request):
     protocolos = ProtocoloAutorizacaoTeletrabalho.objects.filter(
@@ -757,15 +934,24 @@ def protocolos_autorizacao_teletrabalho(request):
 @login_required
 def protocolo_autorizacao_teletrabalho_edit(request, pk):
     protocolo_autorizacao = ProtocoloAutorizacaoTeletrabalho.objects.get(pk=pk)
-    form = ProtocoloAutorizacaoTeletrabalhoForm(instance=protocolo_autorizacao)
+    form_instance = ProtocoloAutorizacaoTeletrabalhoAprovaForm(
+        instance=protocolo_autorizacao)
+    form = ProtocoloAutorizacaoTeletrabalhoForm(
+        instance=protocolo_autorizacao)
     if request.method == 'POST':
         form = ProtocoloAutorizacaoTeletrabalhoForm(
             request.POST, instance=protocolo_autorizacao)
         if form.is_valid():
             form.save()
-            return redirect(reverse('webapp:protocolos_autorizacao_teletrabalho'))
+            return redirect(reverse('webapp:cigt_analisar_protocolos_autorizacao'))
+
+        for _, error_list in form.errors.items():
+            for e in error_list:
+                messages.error(request, e)
+
     context = {
         'form': form,
+        'form_instance': form_instance,
     }
     return render(request, 'webapp/pages/protocolo-autorizacao-teletrabalho-form.html', context)
 
@@ -818,6 +1004,40 @@ def chefia_imediata(request):
 
 
 @login_required
+def chefia_imediata_analisar_manifestacoes(request):
+    manifestacoes_subordinados = ManifestacaoInteresse.objects.filter(
+        chefia_imediata=request.user)
+    context = {
+        'manifestacoes_subordinados': manifestacoes_subordinados,
+    }
+    return render(request, 'webapp/pages/chefia-imediata-analisar-manifestacoes.html', context)
+
+
+@login_required
+def chefia_imediata_analisar_planos_trabalho(request):
+    planos_trabalho = PlanoTrabalho.objects.filter(
+        manifestacao__chefia_imediata=request.user)
+    context = {
+        'planos_trabalho': planos_trabalho,
+    }
+    return render(request, 'webapp/pages/chefia-imediata-analisar-planos-trabalho.html', context)
+
+
+@login_required
+def chefia_imediata_realizar_avaliacoes_mensais(request):
+    if request.user.groups.filter(name='CHEFIAS'):
+        pareceres_cigt = DespachoCIGTPlanoTrabalho.objects.filter(
+            plano_trabalho__manifestacao__chefia_imediata=request.user)
+        avaliacoes_chefia = AvaliacaoChefia.objects.filter(
+            encaminhamento_avaliacao_cigt__despacho_cigt__in=pareceres_cigt)
+        context = {
+            'avaliacoes_chefia': avaliacoes_chefia,
+        }
+        return render(request, 'webapp/pages/chefia-imediata-avaliacoes-mensais.html', context)
+    return HttpResponseBadRequest("proibido-chefia-imediata")
+
+
+@login_required
 def avaliacoes_chefia(request):
     if request.user.groups.filter(name='CHEFIAS'):
         pareceres_cigt = DespachoCIGTPlanoTrabalho.objects.filter(
@@ -835,7 +1055,7 @@ def avaliacoes_chefia(request):
 def avaliacao_atividades_list(request, pk):
     # garante que apenas usuários com grupo CHEFIAS
     # possam fazer a avaliação
-    if request.user.groups.filter(name='CHEFIAS'):
+    if request.user.groups.filter(name='CHEFIAS') or request.user.groups.filter(name='CIGT'):
         avaliacao = AvaliacaoChefia.objects.get(pk=pk)
         pareceres_cigt = DespachoCIGTPlanoTrabalho.objects.filter(
             plano_trabalho__manifestacao__chefia_imediata=request.user)
@@ -843,14 +1063,11 @@ def avaliacao_atividades_list(request, pk):
             encaminhamento_avaliacao_cigt__despacho_cigt__in=pareceres_cigt)
         # garante que apenas a chefia imediata apontada na manifestação de
         # interesse possa fazer a avalicação
-        if not avaliacoes_chefia.filter(pk=pk):
+        if not avaliacoes_chefia.filter(pk=pk) and not request.user.groups.filter(name='CIGT'):
             return HttpResponseBadRequest('proibido-avaliacao-chefia')
 
         plano_trabalho = avaliacao.get_plano_trabalho()
         periodo_para_avaliacao = avaliacao.get_periodo_para_avaliacao()
-
-        # import ipdb
-        # ipdb.set_trace()
 
         # problema -> periodo_para_avaliacao
         # resolver: se o periodo for maior que um um mês, o filtro não vai retornar nada
@@ -872,12 +1089,22 @@ def avaliacao_atividades_list(request, pk):
 
         form = AvaliacaoChefiaFinalizaForm(instance=avaliacao)
 
-        if request.method == 'POST':
-            form = AvaliacaoChefiaFinalizaForm(
-                request.POST, instance=avaliacao)
-            if form.is_valid():
-                form.save()
-                return redirect(reverse('webapp:avaliacoes_chefia'))
+        forms_cumprimento = [AtividadeCumprimentoForm(instance=atividade)
+                             for atividade in atividades_para_avaliacao]
+
+        atividades_e_forms = zip(atividades_para_avaliacao, forms_cumprimento)
+
+        if request.user.groups.filter(name='CHEFIAS'):
+            if request.method == 'POST':
+                form = AvaliacaoChefiaFinalizaForm(
+                    request.POST, instance=avaliacao)
+
+                if form.is_valid():
+                    for atividade, cumprimento in zip(atividades_para_avaliacao, request.POST.getlist('cumprimento')):
+                        atividade.cumprimento = cumprimento
+                        atividade.save()
+                    form.save()
+                    return redirect(reverse('webapp:chefia_imediata_realizar_avaliacoes_mensais'))
 
         context = {
             'plano_trabalho': plano_trabalho,
@@ -887,6 +1114,8 @@ def avaliacao_atividades_list(request, pk):
             'avaliacao': avaliacao,
             'pk_avaliacao': pk,
             'form': form,
+            'atividades_e_forms': atividades_e_forms,
+            'user_chefia': request.user.groups.filter(name='CHEFIAS'),
         }
 
         return render(request, 'webapp/pages/avaliacao-chefia-atividades-list.html', context)
@@ -926,10 +1155,12 @@ def avaliacao_chefia_atividade(request, pk):
         formset = AtividadesTeletrabalhoFormSet(request.POST, instance=periodo)
         if formset.is_valid():
             formset.save()
-
             # verificar o cumprimento total, parcial ou descumprimento
-
             return redirect(reverse('webapp:avaliacoes_chefia'))
+
+        for _, error_list in formset.errors.items():
+            for e in error_list:
+                messages.error(request, e)
 
     context = {
         'formset': formset
@@ -969,6 +1200,11 @@ def avaliacao_chefia_edit(request, pk):
                 obj.modificado_por = request.user
                 obj.save()
                 return redirect(reverse('webapp:avaliacoes_chefia'))
+
+            for _, error_list in form.errors.items():
+                for e in error_list:
+                    messages.error(request, e)
+
         context = {
             'atividades_para_avaliacao': atividades_para_avaliacao,
             'avaliacao': avaliacao,
@@ -989,19 +1225,42 @@ def gabinete(request):
 
 
 @login_required
-def gerar_portaria_doe(request, commit_doe):
+def gerar_portaria_doe(request):
     if request.user.groups.filter(name='CIGT'):
-        if commit_doe:
-            obj = ProtocoloAutorizacaoTeletrabalho.generate_portaria_publicacao()
-            if not obj:
-                # posteriormente separara as duas situações: em que falta o sid e em que não há modificação para publicar
-                return HttpResponseBadRequest("VERIFIQUE TODOS OS SIDS NOS PROTOCOLOS DE AUTORIZACAO | NÃO HÁ NENHUMA MODIFICAÇÃO")
-            obj.render_docx_tpl(tipo_doc='portaria_teletrabalho_doe')
-        else:
-            obj = PortariasPublicadasDOE.objects.last()
+        obj = ProtocoloAutorizacaoTeletrabalho.generate_portaria_publicacao()
+        if not obj:
+            # posteriormente separara as duas situações: em que falta o sid e em que não há modificação para publicar
+            return HttpResponseBadRequest("VERIFIQUE TODOS OS SIDS NOS PROTOCOLOS DE AUTORIZACAO | NÃO HÁ NENHUMA MODIFICAÇÃO")
+        obj.render_docx_tpl(tipo_doc='portaria_teletrabalho_doe')
         try:
             if os.path.exists(obj.docx.path):
                 with open(obj.docx.path, 'rb') as fh:
+                    # response = HttpResponse(fh.read(), content_type='application/docx')  # noqa E501
+                    # response['Content-Disposition'] = f'filename={obj.gerar_nome_arquivo("portaria_teletrabalho_doe")}'  # noqa E501
+                    # return response
+                    return redirect(reverse('webapp:cigt_portarias_doe'))
+        except ValueError:
+            raise Exception('error generating docx file: associated docx not generated')  # noqa E501
+        except AttributeError:
+            return HttpResponseBadRequest("Ainda não foi gerada nenhuma Portaria!")
+        return redirect('webapp:cigt')
+    return HttpResponseBadRequest("proibido-cigt")
+
+
+@login_required
+def download_portaria_doe(request, pk):
+    if request.user.groups.filter(name='CIGT'):
+        obj = PortariasPublicadasDOE.objects.get(pk=pk)
+        # obj.render_docx_tpl(tipo_doc='docx', save_input=False)
+        # path_file_temp = obj.get_path_file_temp(tipo_doc='docx')
+        try:
+            if os.path.exists(obj.docx.path):
+                context = {
+                    'diretor_em_exercicio': obj.diretor_em_exercicio,
+                }
+                obj.render_docx_custom_tpl(
+                    tipo_doc='docx', path_tpl=obj.docx.path, context=context)
+                with open(obj.get_path_file_temp(tipo_doc='docx'), 'rb') as fh:
                     response = HttpResponse(fh.read(), content_type='application/docx')  # noqa E501
                     response['Content-Disposition'] = f'filename={obj.gerar_nome_arquivo("portaria_teletrabalho_doe")}'  # noqa E501
                     return response
@@ -1010,4 +1269,47 @@ def gerar_portaria_doe(request, commit_doe):
         except AttributeError:
             return HttpResponseBadRequest("Ainda não foi gerada nenhuma Portaria!")
         return redirect('webapp:cigt')
+    return HttpResponseBadRequest("proibido-cigt")
+
+
+@login_required
+def download_docx(request, model, pk):
+    if request.user.groups.filter(name='CIGT'):
+        if model == 'portaria':
+            obj = PortariasPublicadasDOE.objects.get(pk=pk)
+            nome_arquivo = 'portaria_teletrabalho_doe'
+        elif model == 'manifestacao':
+            obj = ManifestacaoInteresse.objects.get(pk=pk)
+            nome_arquivo = 'manifestacao_interesse'
+        elif model == 'declaracao':
+            obj = DeclaracaoNaoEnquadramentoVedacoes.objects.get(pk=pk)
+            nome_arquivo = 'declaracao_nao_enquadramento_vedacoes'
+        elif model == 'plano-trabalho':
+            obj = PlanoTrabalho.objects.get(pk=pk)
+            nome_arquivo = 'plano_trabalho'
+        elif model == 'autorizacao-excecao':
+            obj = AutorizacoesExcecoes.objects.get(pk=pk)
+            nome_arquivo = 'autorizacao_excecoes_chefias'
+        elif model == 'avaliacao':
+            obj = AvaliacaoChefia.objects.get(pk=pk)
+            nome_arquivo = 'avaliacao_chefia'
+        elif model == 'protocolo-autorizacao':
+            obj = ProtocoloAutorizacaoTeletrabalho.objects.get(pk=pk)
+            nome_arquivo = 'protocolo_autorizacao'
+        elif model == 'despacho-cigt-plano-trabalho':
+            obj = DespachoCIGTPlanoTrabalho.objects.get(pk=pk)
+            nome_arquivo = 'despacho_cigt_plano_trabalho'
+        else:
+            return HttpResponseBadRequest("tipo-incorreto-arquivo")
+        try:
+            if os.path.exists(obj.docx.path):
+                ...
+        except ValueError:
+            obj.render_docx_tpl(tipo_doc=nome_arquivo)
+
+        with open(obj.docx.path, 'rb') as fh:
+            response = HttpResponse(fh.read(), content_type='application/docx')  # noqa E501
+            response['Content-Disposition'] = f'filename={obj.gerar_nome_arquivo(nome_arquivo)}'  # noqa E501
+            return response
+
     return HttpResponseBadRequest("proibido-cigt")

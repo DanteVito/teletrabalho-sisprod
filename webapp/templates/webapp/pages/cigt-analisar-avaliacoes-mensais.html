@@ -6,6 +6,12 @@
 
 <h2 class="title is-2">Avaliações</h2>
 
+<div class="field">
+    <div class="control">
+        <button class="button is-light"><a href={% url "webapp:encaminhar_avaliacoes_cigt" %}>Encaminhar/Verificar Avaliações Mensais</a></button>
+    </div>
+</div>
+
 <h3 class="title is-4">Avaliações Pendentes</h3>
 
 <table class="table is-striped is-hoverable">
@@ -72,20 +78,4 @@
     </tbody>
 </table>
 
-<ul>
-    {% for avaliacao in avaliacoes %}
-        {% if not avaliacao.atestado_cumprimento_metas %}
-            <li>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}/{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }} - <a href="{% url 'webapp:avaliacao_atividades_list' avaliacao.pk %}">{{ avaliacao }}</a></li>    
-        {% endif %}
-    {% endfor %}
-</ul>
-
-<h3>Avaliações Realizadas</h3>
-<ul>
-    {% for avaliacao in avaliacoes %}
-        {% if avaliacao.atestado_cumprimento_metas %}
-            <li>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}/{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }} - <a href="{% url 'webapp:avaliacao_atividades_list' avaliacao.pk %}">{{ avaliacao }} - {{ avaliacao.atestado_cumprimento_metas }}</a></li>    
-        {% endif %}
-    {% endfor %}
-</ul>
 {% endblock%}

@@ -3,19 +3,67 @@
 {% block title%}Home{% endblock%}
 
 {% block content %}
+<div class="content">
 
-<h2>Declaração de Não Enquadramento nas Vedações Legais</h2>
+    <h2 class="title is-2">Declarações de Não Enquadramento nas Vedações Legais </h2>
+    
+    <h3 class="title is-4">Declarações Cadastradas</h3>
+    
+    <table class="table is-striped is-hoverable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Servidor</th>
+                <th>Aceita</th>
+                <th>Editar</th>
+                <th>Deletar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for declaracao in declaracoes %}
+                <tr>
+                    <td>{{ declaracao.id }}</td>
+                    <td>{{ declaracao.manifestacao.servidor }}</td>
+                    <td><a href={% url "webapp:download_docx" "declaracao" declaracao.id %}>SIM</a></td>
+                    <td><a href="{% url 'webapp:declaracao_nao_enquadramento_edit' declaracao.pk %}">editar</a></td>
+                    <td><a href="{% url 'webapp:declaracao_nao_enquadramento_delete' declaracao.pk %}">deletar</a></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if autorizacoes_excecoes %}
+    
+    <h3 class="title is-4">Declarações Cadastradas (Para Cargo de Chefia ou Direção)</h3>
+    
+    <table class="table is-striped is-hoverable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Servidor</th>
+                <th>Aceita</th>
+                <th>Editar</th>
+                <th>Deletar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for declaracao, autorizacao in declaracoes_autorizacoes %}
+                <tr>
+                    <td>{{ declaracao.id }}</td>
+                    <td>{{ declaracao.manifestacao.servidor }}</td>
+                    {% if not declaracao.cargo_chefia_direcao %}<td>{% if autorizacao.aprovado_gabinete == 'aprovado' %}<a href={% url "webapp:download_docx" "declaracao" declaracao.id %}>SIM</a>{% elif autorizacao.aprovado_gabinete == 'reprovado' %}NÃO{% else %}PENDENTE{% endif %}</td>{% endif %}
+                    <td><a href="{% url 'webapp:declaracao_nao_enquadramento_edit' declaracao.pk %}">editar</a></td>
+                    <td><a href="{% url 'webapp:declaracao_nao_enquadramento_delete' declaracao.pk %}">deletar</a></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+    
+    <a href="{% url 'webapp:declaracao_nao_enquadramento_create' %}" class="button">[+] Cadastrar Nova Manifestação de Interesse</a>
+    
+</div>
 
 
-<h3>Declarações Cadastradas</h3>
-
-
-<ul>
-    {% for declaracao in declaracoes %}
-    <li>{{ declaracao }} - <a href="{% url 'webapp:declaracao_nao_enquadramento_edit' declaracao.pk %}">editar</a> - <a href={% url 'webapp:declaracao_nao_enquadramento_delete' declaracao.pk %}>excluir</a></li>    
-    {% endfor %}
-</ul>
-
-<h3>Cadastrar nova Declaração <a href="{% url 'webapp:declaracao_nao_enquadramento_create' %}">[+]</a></h3>
 
 {% endblock%}
