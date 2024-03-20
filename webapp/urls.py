@@ -117,5 +117,8 @@ urlpatterns = [
     # download arquivos
     path('download/<str:model>/<int:pk>',
          views.download_docx, name='download_docx'),
+    # htmx
+    path('htmx-adiciona-periodo/',
+         views.htmx_adiciona_periodo, name='htmx_adiciona_periodo'),
 
 ]

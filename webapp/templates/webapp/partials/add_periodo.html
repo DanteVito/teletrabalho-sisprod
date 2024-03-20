@@ -1,0 +1,18 @@
+<div id="periodo-{{ forloop.counter0 }}">
+
+    <div class="field">
+        {{ form.plano_trabalho }}
+    </div>
+
+    <div class="field">
+        <label class="label">Data Inicial</label>
+        {{ form.data_inicio }}
+    </div>
+
+    <div class="field">
+        <label class="label">Data Final</label>
+        <div class="control">
+        {{ form.data_fim }}
+        </div>
+    </div>
+</div>

@@ -1,5 +1,8 @@
 {% extends 'webapp/base/base.html' %}
 
+{% load static %}
+
+
 {% block title%}Home{% endblock%}
 
 {% block content %}
@@ -51,21 +54,35 @@
 
     {% if tipo_form == 'create' %}
     {{ periodos_formset.management_form }}
-    {% for form in periodos_formset %}
     
-        <div class="field">
-            <label class="label">Data Inicial</label>
-            {{ form.data_inicio }}
-        </div>
+    <!-- htmx -->
 
-        <div class="field">
-            <label class="label">Data Final</label>
-            <div class="control">
-            {{ form.data_fim }}
-            </div>
-        </div>
+    <div id="plano_trabalho">
+        {% for form in periodos_formset %}
+            <div id="periodo-{{ forloop.counter0 }}">
+                <div class="field">
+                    <label class="label">
+                        Plano de Trabalho
+                    </label>
+                    {{ form.plano_trabalho }}
+                </div>
+                <div class="field">
+                    <label class="label">Data Inicial</label>
+                    {{ form.data_inicio }}
+                </div>
     
+                <div class="field">
+                    <label class="label">Data Final</label>
+                    <div class="control">
+                    {{ form.data_fim }}
+                    </div>
+                </div>
+            </div>
         {% endfor %}
+    </div>
+    
+    <a id="buttonAddPeriodo" hx-get={% url "webapp:htmx_adiciona_periodo" %} hx-target="#plano_trabalho" hx-swap="beforeend">Adicionar Período</a>
+
         
     {% elif tipo_form == 'edit' %}
     
@@ -122,10 +139,19 @@
 
     <div class="field">
         <div class="control">
-            <button class="button is-light">Salvar</button>
+            <button class="button is-light" onclick="reorderItems()">Salvar</button>
         </div>
     </div>
 
 </form>
 
 {% endblock%}
+
+{% block js%}
+
+    <script
+        src="{% static 'webapp/js/main.js' %}"
+        defer
+    ></script>
+
+{% endblock js %}

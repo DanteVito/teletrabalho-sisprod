@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
     
@@ -28,8 +29,8 @@
     
     {% include 'webapp/partials/footer.html' %}
     
-    <script>
-    </script>
+    {% block js %}
+    {% endblock %}
 
 </body>
 

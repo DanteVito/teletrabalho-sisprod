@@ -112,6 +112,9 @@ class PlanoTrabalhoForm(ModelForm):
             widget=forms.Select(),
         )
 
+        for field_name, field in self.fields.items():
+            field.widget.attrs['data-field'] = field_name
+
     class Meta:
         model = PlanoTrabalho
         fields = (
@@ -143,6 +146,12 @@ class PlanoTrabalhoFormAprovadoCIGTForm(ModelForm):
 
 
 class PeriodoTeletrabalhoForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        super(PeriodoTeletrabalhoForm, self).__init__(*args, **kwargs)
+
+        for field_name, field in self.fields.items():
+            field.widget.attrs['data-field'] = field_name
+
     class Meta:
         model = PeriodoTeletrabalho
         fields = (
@@ -151,8 +160,9 @@ class PeriodoTeletrabalhoForm(ModelForm):
             'data_fim',
         )
         widgets = {
-            'data_inicio': forms.DateInput(attrs={'class': 'input'}),
-            'data_fim': forms.DateInput(attrs={}),
+            'plano_trabalho': forms.HiddenInput(),
+            'data_inicio': forms.DateInput(attrs={'class': 'input', 'type': 'date'}),
+            'data_fim': forms.DateInput(attrs={'class': 'input', 'type': 'date'}),
         }
 
 
@@ -191,8 +201,14 @@ PeriodoTeletrabalhoFormSet = inlineformset_factory(
         'data_inicio',
         'data_fim',
     ),
-    extra=1,
+    extra=0,
+    min_num=1,
+    validate_min=True,
     can_delete=False,
+    widgets={
+        'data_inicio': forms.DateInput(attrs={'class': 'input', 'type': 'date'}),
+        'data_fim': forms.DateInput(attrs={'class': 'input', 'type': 'date'}),
+    }
 )
 
 
@@ -204,7 +220,9 @@ PeriodoTeletrabalhoFormSetCreate = inlineformset_factory(
         'data_fim',
     ),
     formset=CustomPeriodoTeletrabalhoFormset,
-    extra=3,
+    extra=0,
+    min_num=1,
+    validate_min=True,
     can_delete=False,
     widgets={
         'data_inicio': forms.DateInput(attrs={'class': 'input', 'type': 'date'}),

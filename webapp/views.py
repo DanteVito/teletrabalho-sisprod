@@ -19,6 +19,7 @@ from render.forms import (AtividadeCumprimentoForm, AtividadesTeletrabalhoForm,
                           DeclaracaoNaoEnquadramentoVedacoesForm,
                           ManifestacaoInteresseAprovadoChefiaForm,
                           ManifestacaoInteresseForm, PeriodoTeletrabalhoForm,
+                          PeriodoTeletrabalhoFormSet,
                           PeriodoTeletrabalhoFormSetCreate, PlanoTrabalhoForm,
                           PlanoTrabalhoFormAprovadoChefiaForm,
                           PlanoTrabalhoFormAprovadoCIGTForm,
@@ -341,11 +342,14 @@ def plano_trabalho_create(request):
     # usuário possa cadastrar um plano de trabalho para ele mesmo,
     # assim como a sua chefia imediata
 
-    form = PlanoTrabalhoForm(user=request.user)
+    instance = PlanoTrabalho()
+
+    form = PlanoTrabalhoForm(
+        user=request.user)
     # PeriodoTeletrabalhoFormSet = inlineformset_factory(
     #     PlanoTrabalho, PeriodoTeletrabalho, fields=("data_inicio", "data_fim")
     # )
-    periodos_formset = PeriodoTeletrabalhoFormSetCreate()
+    periodos_formset = PeriodoTeletrabalhoFormSet()
     # AtividadesTeletrabalhoFormSet = inlineformset_factory(
     #     PeriodoTeletrabalho, AtividadesTeletrabalho, fields=(
     #         "periodo", "atividade", "meta_qualitativa", "tipo_meta_quantitativa", "meta_quantitativa", "cumprimento", "justificativa_nao_cumprimento",)
@@ -368,8 +372,11 @@ def plano_trabalho_create(request):
 
             form.save_m2m()
 
+            import ipdb
+            ipdb.set_trace()
+
             # associa todos os períodos ao plano de trabalho salvo
-            periodos_formset = PeriodoTeletrabalhoFormSetCreate(
+            periodos_formset = PeriodoTeletrabalhoFormSet(
                 request.POST, instance=obj)
 
             if periodos_formset.is_valid():
@@ -1313,3 +1320,12 @@ def download_docx(request, model, pk):
             return response
 
     return HttpResponseBadRequest("proibido-cigt")
+
+
+@login_required
+def htmx_adiciona_periodo(request):
+    form = PeriodoTeletrabalhoForm()
+    context = {
+        'form': form,
+    }
+    return render(request, 'webapp/partials/add_periodo.html', context)
