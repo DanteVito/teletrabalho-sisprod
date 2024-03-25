@@ -167,6 +167,12 @@ class PeriodoTeletrabalhoForm(ModelForm):
 
 
 class AtividadesTeletrabalhoForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        super(AtividadesTeletrabalhoForm, self).__init__(*args, **kwargs)
+
+        for field_name, field in self.fields.items():
+            field.widget.attrs['data-field'] = field_name
+
     class Meta:
         model = AtividadesTeletrabalho
         fields = (
@@ -175,9 +181,12 @@ class AtividadesTeletrabalhoForm(ModelForm):
             'meta_qualitativa',
             'tipo_meta_quantitativa',
             'meta_quantitativa',
-            'cumprimento',
-            'justificativa_nao_cumprimento'
         )
+        widgets = {
+            'periodo': forms.HiddenInput(),
+            'meta_qualitativa': forms.TextInput(attrs={'class': 'input'}),
+            'meta_quantitativa': forms.TextInput(attrs={'class': 'input'}),
+        }
 
 
 class CustomPeriodoTeletrabalhoFormset(BaseInlineFormSet):
@@ -234,8 +243,12 @@ PeriodoTeletrabalhoFormSetCreate = inlineformset_factory(
 AtividadesTeletrabalhoFormSet = inlineformset_factory(
     PeriodoTeletrabalho,
     AtividadesTeletrabalho,
+    extra=0,
+    min_num=1,
+    validate_min=True,
+    can_delete=False,
     fields=(
-        "periodo", "atividade", "meta_qualitativa", "tipo_meta_quantitativa", "meta_quantitativa", "cumprimento", "justificativa_nao_cumprimento",),
+        "periodo", "atividade", "meta_qualitativa", "tipo_meta_quantitativa", "meta_quantitativa", ),
     widgets={
         'meta_qualitativa': forms.TextInput(attrs={'class': 'input'}),
         'meta_quantitativa': forms.TextInput(attrs={'class': 'input'}),

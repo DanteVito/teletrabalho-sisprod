@@ -57,7 +57,7 @@
     
     <!-- htmx -->
 
-    <div id="plano_trabalho">
+    <div id="periodos">
         {% for form in periodos_formset %}
             <div id="periodo-{{ forloop.counter0 }}">
                 <div class="field">
@@ -81,7 +81,7 @@
         {% endfor %}
     </div>
     
-    <a id="buttonAddPeriodo" hx-get={% url "webapp:htmx_adiciona_periodo" %} hx-target="#plano_trabalho" hx-swap="beforeend">Adicionar Período</a>
+    <a id="buttonAddPeriodo" hx-get={% url "webapp:htmx_adiciona_periodo" %} hx-target="#periodos" hx-swap="beforeend">Adicionar Período</a>
 
         
     {% elif tipo_form == 'edit' %}
@@ -95,39 +95,44 @@
 
     <h4 class="title is-6">Atividades</h4>
     {% if tipo_form == 'create' %}
-        {% comment %} {{ atividades_formset }} {% endcomment %}
-        {{ atividades_formset.management_form }}
-    {% for form in atividades_formset %}
-    
-        <div class="field">
-            <label class="label">Atividade</label>
-            <div class="control">
-                <div class="select">{{ form.atividade }}</div>
+        <div id="atividades">
+            {{ atividades_formset.management_form }}
+            {% for form in atividades_formset %}
+                <div id="atividade-{{ forloop.counter0 }}">
+                    <div class="field">
+                        <label class="label">Atividade</label>
+                        <div class="control">
+                            <div class="select">{{ form.atividade }}</div>
+                        </div>
+                    </div>
+        
+                    <div class="field">
+                        <label for="" class="label">Meta Qualitativa</label>
+                        <div class="control">
+                            {{ form.meta_qualitativa }}
+                        </div>
+                    </div>
+        
+                    <div class="field">
+                        <label class="label">Tipo de Meta Quantitativa</label>
+                        <div class="control">
+                            <div class="select">{{ form.tipo_meta_quantitativa }}</div>
+                        </div>
+                    </div>
+        
+                    <div class="field">
+                        <label for="" class="label">Meta Quantitativa</label>
+                        <div class="control">
+                            {{ form.meta_quantitativa }}
+                        </div>
+                    </div>
             </div>
+            
+            {% endfor %}
         </div>
 
-        <div class="field">
-            <label for="" class="label">Meta Qualitativa</label>
-            <div class="control">
-                {{ form.meta_qualitativa }}
-            </div>
-        </div>
+    <a id="buttonAddAtividade" hx-get={% url "webapp:htmx_adiciona_atividade" %} hx-target="#atividades" hx-swap="beforeend">Adicionar Atividade</a>
 
-        <div class="field">
-            <label class="label">Tipo de Meta Quantitativa</label>
-            <div class="control">
-                <div class="select">{{ form.tipo_meta_quantitativa }}</div>
-            </div>
-        </div>
-
-        <div class="field">
-            <label for="" class="label">Meta Quantitativa</label>
-            <div class="control">
-                {{ form.meta_quantitativa }}
-            </div>
-        </div>
-    
-        {% endfor %}
 
     {% elif tipo_form == 'edit' %}
         {% for atividade in atividades_teletrabalho %}

@@ -619,7 +619,7 @@ def plano_trabalho_delete(request, pk):
     context = {
         'planos_trabalho': planos_trabalho
     }
-    return render(request, 'webapp/pages/plano-trabalho.html', context)
+    return redirect(reverse('webapp:plano_trabalho'))
 
 
 @login_required
@@ -1329,3 +1329,12 @@ def htmx_adiciona_periodo(request):
         'form': form,
     }
     return render(request, 'webapp/partials/add_periodo.html', context)
+
+
+@login_required
+def htmx_adiciona_atividade(request):
+    form = AtividadesTeletrabalhoForm()
+    context = {
+        'form': form,
+    }
+    return render(request, 'webapp/partials/add_atividade.html', context)

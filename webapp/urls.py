@@ -120,5 +120,7 @@ urlpatterns = [
     # htmx
     path('htmx-adiciona-periodo/',
          views.htmx_adiciona_periodo, name='htmx_adiciona_periodo'),
+    path('htmx-adiciona-atividade', views.htmx_adiciona_atividade,
+         name='htmx_adiciona_atividade'),
 
 ]
