@@ -7,6 +7,10 @@
 
     <h2 class="title is-2">Manifestação de Interesse </h2>
     
+    {% if not manifestacoes_servidor %}
+    <div class="notification is-warning">Cadastre uma Manifestação de Interesse para prosseguir!</div>
+    {% endif %}
+    
     <h3 class="title is-4">Manifestações Cadastradas</h3>
     
     <table class="table is-striped is-hoverable">
@@ -33,8 +37,8 @@
                     <td>{{ manifestacao.funcao }}</td>
                     <td>{{ manifestacao.posto_trabalho }}</td>
                     <td>{% if manifestacao.aprovado_chefia == 'aprovado' %} <a href={% url "webapp:download_docx" "manifestacao" manifestacao.pk %}>SIM</a>{% elif manifestacao.aprovado_chefia == 'reprovado' %}NÃO{% else %}PENDENTE{% endif %}</td>
-                    <td><a href="{% url 'webapp:manifestacao_interesse_edit' manifestacao.pk %}">editar</a></td>
-                    <td><a href="{% url 'webapp:manifestacao_interesse_delete' manifestacao.pk %}">deletar</a></td>
+                    <td>{% if manifestacao.aprovado_chefia %}[X]{% else %}<a href="{% url 'webapp:manifestacao_interesse_edit' manifestacao.pk %}">editar</a>{% endif %}</td>
+                    <td>{% if manifestacao.aprovado_chefia %}[X]{% else %}<a href="{% url 'webapp:manifestacao_interesse_delete' manifestacao.pk %}">deletar</a>{% endif %}</td>
                 </tr>
             {% endfor %}
         </tbody>

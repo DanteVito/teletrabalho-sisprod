@@ -78,11 +78,8 @@ class ModeloDocumento(models.Model):
     """
     Classe para a inclusão modelos de documentos (templates).
     """
-    setor = models.ForeignKey(Setor,
-                              related_name='%(app_label)s_%(class)s_setor',
-                              on_delete=models.CASCADE)
     nome_modelo = models.CharField(max_length=128)
-    descricao_modelo = models.TextField()
+    descricao_modelo = models.TextField(blank=True, null=True)
     template_docx = models.FileField(upload_to='templates_docx/')
 
     def __str__(self):
@@ -436,6 +433,12 @@ class DeclaracaoNaoEnquadramentoVedacoes(BaseModelGeneral):
         "Justificativa Exceções", blank=True, null=True)
 
     def clean(self):
+
+        if self.id:
+            raise ValidationError(
+                "Não é possível editar uma manifestação cadastrada. Se não estiver pendente/aprovada,\
+                    delete e cadastre uma nova.")
+
         if not self.estagio_probatorio or not self.penalidade_disciplinar:
             raise ValidationError(
                 "É vedado o teletrabalho ao Servidor que se enquadra nas vedações legais")
@@ -451,6 +454,11 @@ class DeclaracaoNaoEnquadramentoVedacoes(BaseModelGeneral):
                             de aprovação do Gabinete para a declaração selecionada!")
         except ObjectDoesNotExist:
             ...
+
+        if not self.cargo_chefia_direcao and not self.justificativa_excecao:
+            raise ValidationError(
+                "É necessário apresentar uma justificativa para a concessão de regime de teletrabalho\
+                    a servidor ocupante de cargo de chefia ou direção")
 
     def get_context_docx(self):
         context = {
@@ -542,9 +550,12 @@ class PlanoTrabalho(BaseModelGeneral):
                 try:
                     autorizacao = AutorizacoesExcecoes.objects.get(
                         declaracao=declaracao)
-                    if autorizacao.aprovado_gabinete != 'aprovado':
+                    if not autorizacao.aprovado_gabinete:
                         raise ValidationError(
-                            "É preciso autorização do Diretor do Órgão para teletrabalho de servidor com cargo de chefia")
+                            "A solicitação de autorização do Diretor do Órgão para teletrabalho de servidor com cargo de chefia encontra-se pendente!")
+                    elif autorizacao.aprovado_gabinete == 'reprovado':
+                        raise ValidationError(
+                            "A solicitação de autorização do Diretor do Órgão para teletrabalho de servidor com cargo de chefia foi negada!")
                 except ObjectDoesNotExist:
                     modelo = ModeloDocumento.objects.get(nome_modelo="APROVACAO EXCECAO DIRETOR")  # noqa E501
                     AutorizacoesExcecoes.objects.create(
@@ -555,14 +566,13 @@ class PlanoTrabalho(BaseModelGeneral):
             raise ValidationError(
                 "É preciso preecher a Declaração de Não Enquadramento nas Vedações antes de elaborar o Plano de Trabalho!")
 
-        try:
-            plano_trabalho_old = PlanoTrabalho.objects.get(id=self.id)
-            if plano_trabalho_old.aprovado_chefia:
-                if plano_trabalho_old.aprovado_cigt:
-                    raise ValidationError(
-                        "Não é possível editar um Plano de Trabalho que já foi aprovado/reprovado pela Chefia Imediata e/ou CIGT")
-        except PlanoTrabalho.DoesNotExist:
-            ...
+        # try:
+        #     plano_trabalho_old = PlanoTrabalho.objects.get(id=self.id)
+        #     if plano_trabalho_old.aprovado_chefia:
+        #         raise ValidationError(
+        #             "Não é possível editar um Plano de Trabalho que já foi aprovado/reprovado pela Chefia Imediata!")
+        # except PlanoTrabalho.DoesNotExist:
+        #     ...
 
         if not self.aprovado_chefia:
             if self.aprovado_cigt:
@@ -742,6 +752,11 @@ class PeriodoTeletrabalho(models.Model):
         str_data_inicio = datetime.strftime(self.data_inicio, '%d/%m/%Y')
         str_data_fim = datetime.strftime(self.data_fim, '%d/%m/%Y')
         return f'{str_data_inicio} a {str_data_fim}'
+
+    def clean(self):
+        if self.plano_trabalho.aprovado_chefia:
+            raise ValidationError(
+                "Não é possível excluir um Período de um Plano de Trabalho já aprovado!")
 
     def year_month_normalize(self):
         """
@@ -1390,14 +1405,14 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
                 if not encaminhamentos_avaliacoes:
                     # cria encaminhamento de avaliacao
                     modelo_encaminhamento = ModeloDocumento.objects.get(nome_modelo="DESPACHO ENCAMINHA AVALIACAO CIGT")  # noqa E501
-                    goat = User.objects.get(username='goat')
+                    admin = User.objects.get(username='admin')
                     obj = DespachoEncaminhaAvaliacao.objects.create(
                         numeracao=Numeracao.get_ultimo_ano(),
                         ano_avaliacao=ano_avaliacao,
                         mes_avaliacao=mes_avaliacao,
                         despacho_cigt=self.despacho_cigt,
-                        adicionado_por=goat,
-                        modificado_por=goat,
+                        adicionado_por=admin,
+                        modificado_por=admin,
                         modelo=modelo_encaminhamento
                     )
                     # cria avaliacao da chefia
@@ -1405,8 +1420,8 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
                         nome_modelo="AVALIACAO CHEFIA")
                     obj = AvaliacaoChefia.objects.create(
                         encaminhamento_avaliacao_cigt=obj,
-                        adicionado_por=goat,
-                        modificado_por=goat,
+                        adicionado_por=admin,
+                        modificado_por=admin,
                         modelo=modelo_avaliacao)
                     avaliacoes_encaminhadas.append(obj)
         return avaliacoes_encaminhadas
@@ -2149,7 +2164,7 @@ def cria_despacho_retorno_avaliacao_chefias_callback(sender, **kwargs):
     instance = kwargs['instance']
 
     modelo = ModeloDocumento.objects.get(nome_modelo="PARECER PLANO DE TRABALHO CIGT")  # noqa E501
-    goat = User.objects.get(username='goat')
+    admin = User.objects.get(username='admin')
 
     try:
         despacho_retorno_avaliacao = DespachoRetornoAvaliacao.objects.get(
@@ -2161,8 +2176,8 @@ def cria_despacho_retorno_avaliacao_chefias_callback(sender, **kwargs):
             numeracao=Numeracao.get_ultimo_numero(),
             avaliacao_chefia=instance,
             cumprimento_integral=instance.atestado_cumprimento_metas,
-            adicionado_por=goat,
-            modificado_por=goat,
+            adicionado_por=admin,
+            modificado_por=admin,
             modelo=modelo)
     # else:
     #    print('já existe')

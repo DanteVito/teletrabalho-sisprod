@@ -4,13 +4,11 @@ from datetime import date
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.forms import inlineformset_factory
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
-from authentication.models import User
 from render.forms import (AtividadeCumprimentoForm, AtividadesTeletrabalhoForm,
                           AtividadesTeletrabalhoFormSet,
                           AutorizacoesExcecoesAprovaForm,
@@ -19,8 +17,7 @@ from render.forms import (AtividadeCumprimentoForm, AtividadesTeletrabalhoForm,
                           DeclaracaoNaoEnquadramentoVedacoesForm,
                           ManifestacaoInteresseAprovadoChefiaForm,
                           ManifestacaoInteresseForm, PeriodoTeletrabalhoForm,
-                          PeriodoTeletrabalhoFormSet,
-                          PeriodoTeletrabalhoFormSetCreate, PlanoTrabalhoForm,
+                          PeriodoTeletrabalhoFormSet, PlanoTrabalhoForm,
                           PlanoTrabalhoFormAprovadoChefiaForm,
                           PlanoTrabalhoFormAprovadoCIGTForm,
                           PortariaDoeEditForm,
@@ -30,11 +27,10 @@ from render.models import (AtividadesTeletrabalho, AutorizacoesExcecoes,
                            AvaliacaoChefia, ComissaoInterna,
                            ControleMensalTeletrabalho,
                            DeclaracaoNaoEnquadramentoVedacoes,
-                           DespachoCIGTPlanoTrabalho, ListaPostosTrabalho,
-                           ManifestacaoInteresse, ModeloDocumento, Numeracao,
-                           PeriodoTeletrabalho, PlanoTrabalho,
-                           PortariasPublicadasDOE,
-                           ProtocoloAutorizacaoTeletrabalho, Setor, Unidade)
+                           DespachoCIGTPlanoTrabalho, ManifestacaoInteresse,
+                           ModeloDocumento, Numeracao, PeriodoTeletrabalho,
+                           PlanoTrabalho, PortariasPublicadasDOE,
+                           ProtocoloAutorizacaoTeletrabalho)
 
 
 @login_required
@@ -47,7 +43,6 @@ def home(request):
 @login_required
 def dados_cadastrais(request):
     user_groups = request.user.groups.all()
-
     form = UserForm(instance=request.user)
 
     if request.method == 'POST':
@@ -61,6 +56,7 @@ def dados_cadastrais(request):
                 messages.error(request, e)
 
     context = {
+        'check_dados': request.user.check_dados(),
         'form': form,
         'user_groups': user_groups,
     }
@@ -70,6 +66,9 @@ def dados_cadastrais(request):
 
 @login_required
 def manifestacao_interesse(request):
+    if request.user.check_dados():
+        return redirect(reverse('webapp:dados_cadastrais'))
+
     manifestacoes_servidor = ManifestacaoInteresse.objects.filter(
         servidor=request.user)
 
@@ -166,7 +165,7 @@ def manifestacao_interesse_aprovado_chefia(request, pk):
             obj = form.save(commit=False)
             obj.modificado_por = request.user
             obj.save()
-            return redirect(reverse('webapp:chefia_imediata'))
+            return redirect(reverse('webapp:chefia_imediata_analisar_manifestacoes'))
 
         for _, error_list in form.errors.items():
             for e in error_list:
@@ -204,6 +203,8 @@ def manifestacao_interesse_delete(request, pk):
 
 @login_required
 def declaracao_nao_enquadramento(request):
+    if request.user.check_dados():
+        return redirect(reverse('webapp:dados_cadastrais'))
     declaracoes = DeclaracaoNaoEnquadramentoVedacoes.objects.filter(
         manifestacao__servidor=request.user)
     autorizacoes_excecoes = AutorizacoesExcecoes.objects.filter(
@@ -288,6 +289,13 @@ def declaracao_nao_enquadramento_edit(request, pk):
             obj = form.save(commit=False)
             obj.modificado_por = request.user
             obj.save()
+
+            if not obj.cargo_chefia_direcao:
+                if not AutorizacoesExcecoes.objects.filter(declaracao=obj):
+                    modelo_aprovacao_excecao = ModeloDocumento.objects.get(nome_modelo="APROVACAO EXCECAO DIRETOR")  # noqa E501
+                    AutorizacoesExcecoes.objects.create(
+                        declaracao=obj, modelo=modelo_aprovacao_excecao)
+
             messages.info(request, "Declaração alterada com sucesso!")
             return redirect(reverse('webapp:declaracao_nao_enquadramento'))
 
@@ -328,6 +336,19 @@ def declaracao_nao_enquadramento_delete(request, pk):
 
 @login_required
 def plano_trabalho(request):
+    if request.user.check_dados():
+        return redirect(reverse('webapp:dados_cadastrais'))
+    if not ManifestacaoInteresse.objects.filter(
+            servidor=request.user):
+        messages.info(
+            request, "É necessário cadastrar a Manifestação de Interesse antes de cadastrar o Plano de Trabalho!")
+        return redirect(reverse('webapp:manifestacao_interesse'))
+    if not DeclaracaoNaoEnquadramentoVedacoes.objects.filter(
+            manifestacao__servidor=request.user):
+        messages.info(
+            request, "É necessário cadastrar a Declaração de Não Enquadramento nas Vedações Legais antes de cadastrar o Plano de Trabalho!")
+        return redirect(reverse('webapp:declaracao_nao_enquadramento'))
+
     planos_trabalho = PlanoTrabalho.objects.filter(
         manifestacao__servidor=request.user)
     context = {
@@ -341,6 +362,13 @@ def plano_trabalho_create(request):
     # escrever validações para garantir que apenas o próprio
     # usuário possa cadastrar um plano de trabalho para ele mesmo,
     # assim como a sua chefia imediata
+
+    last_manifestacao = ManifestacaoInteresse.objects.filter(
+        servidor=request.user).last()
+    if not last_manifestacao.aprovado_chefia:
+        messages.info(
+            request, "É necessário ter a Manifestação de Interesse aprovada antes de cadastrar o Plano de Trabalho!")
+        return redirect(reverse('webapp:plano_trabalho'))
 
     instance = PlanoTrabalho()
 
@@ -371,9 +399,6 @@ def plano_trabalho_create(request):
             # for many to many fields
 
             form.save_m2m()
-
-            import ipdb
-            ipdb.set_trace()
 
             # associa todos os períodos ao plano de trabalho salvo
             periodos_formset = PeriodoTeletrabalhoFormSet(
@@ -443,6 +468,8 @@ def plano_trabalho_edit(request, pk):
     try:
         instance = PlanoTrabalho.objects.get(
             pk=pk, manifestacao__servidor=request.user)
+        if instance.aprovado_chefia:
+            return redirect(reverse('webapp:plano_trabalho'))
     except PlanoTrabalho.DoesNotExist:
         return HttpResponseBadRequest("not allowed")
 
@@ -450,6 +477,7 @@ def plano_trabalho_edit(request, pk):
         plano_trabalho=instance)
     form = PlanoTrabalhoForm(
         instance=instance, user=instance.manifestacao.servidor)
+    periodos_formset = PeriodoTeletrabalhoFormSet()
     if request.method == 'POST':
         form = PlanoTrabalhoForm(
             request.POST, instance=instance, user=instance.manifestacao.servidor)
@@ -479,6 +507,7 @@ def plano_trabalho_edit(request, pk):
         'tipo_form': 'edit',
         'periodos_teletrabalho': periodos_teletrabalho,
         'form': form,
+        'periodos_formset': periodos_formset,
         'periodos_teletrabalho': periodos_teletrabalho,
         'atividades_teletrabalho': atividades_teletrabalho,
     }
@@ -505,7 +534,7 @@ def plano_trabalho_aprovado_chefia(request, pk):
             obj = form.save(commit=False)
             obj.modificado_por = request.user
             obj.save()
-            return redirect(reverse('webapp:chefia_imediata'))
+            return redirect(reverse('webapp:chefia_imediata_analisar_planos_trabalho'))
 
         for _, error_list in form.errors.items():
             for e in error_list:
@@ -583,7 +612,7 @@ def plano_trabalho_aprovado_cigt(request, pk):
                             modelo=modelo_protocolo_autorizacao,
                             adicionado_por=request.user,
                             modificado_por=request.user)
-                return redirect(reverse('webapp:cigt'))
+                return redirect(reverse('webapp:cigt_analisar_planos_trabalho'))
 
             for _, error_list in form.errors.items():
                 for e in error_list:
@@ -611,14 +640,11 @@ def plano_trabalho_delete(request, pk):
     # escrever as validações para que apenas o próprio usuário e a chefia
     # imediata possam deletar o plano de trabalho cadastrado por ambos.
     # usar o messages.
-    planos_trabalho = PlanoTrabalho.objects.all()
 
     plano_trabalho = PlanoTrabalho.objects.get(pk=pk)
-    plano_trabalho.delete()
+    if not plano_trabalho.aprovado_chefia:
+        plano_trabalho.delete()
 
-    context = {
-        'planos_trabalho': planos_trabalho
-    }
     return redirect(reverse('webapp:plano_trabalho'))
 
 
@@ -663,7 +689,11 @@ def periodo_teletrabalho(request, pk):
 @login_required
 def periodo_teletrabalho_delete(request, pk):
     instance = PeriodoTeletrabalho.objects.get(pk=pk)
-    instance.delete()
+    if instance.plano_trabalho.aprovado_chefia:
+        messages.error(
+            request, "Não é possível excluir um Período de um Plano de Trabalho já aprovado/reprovado!")
+    else:
+        instance.delete()
     return redirect(reverse('webapp:plano_trabalho_edit', kwargs={'pk': instance.plano_trabalho_id}))
 
 
@@ -713,7 +743,11 @@ def atividade_teletrabalho(request, pk):
 def atividade_teletrabalho_delete(request, pk):
     instance = AtividadesTeletrabalho.objects.get(pk=pk)
     plano_trabalho_id = instance.periodo.plano_trabalho.id
-    instance.delete()
+    if instance.periodo.plano_trabalho.aprovado_chefia:
+        messages.error(
+            request, "Não é possível excluir uma Atividade de um Plano de Trabalho já aprovado/reprovado!")
+    else:
+        instance.delete()
     return redirect(reverse('webapp:plano_trabalho_edit', kwargs={'pk': plano_trabalho_id}))
 
 
@@ -765,6 +799,7 @@ def autorizacao_excecao_edit(request, pk):
         context = {
             'form': form,
             'form_instance': form_instance,
+            'declaracao': autorizacao.declaracao,
         }
         return render(request, 'webapp/pages/autorizacao-excecao-form.html', context)
     return HttpResponseBadRequest("probido-gab")
@@ -798,8 +833,7 @@ def cigt(request):
 
 @login_required
 def cigt_analisar_planos_trabalho(request):
-    planos_trabalho = PlanoTrabalho.objects.filter(
-        manifestacao__chefia_imediata=request.user)
+    planos_trabalho = PlanoTrabalho.objects.all()
     context = {
         'planos_trabalho': planos_trabalho,
     }
@@ -966,7 +1000,7 @@ def protocolo_autorizacao_teletrabalho_edit(request, pk):
 @login_required
 def servidor(request):
     # checar o cadastro
-    check_cadastro = request.user.check_dados()
+    check_dados = request.user.check_dados()
     # verifica se existe Manifestacao de Interesse
     last_manifestacao_interesse = ManifestacaoInteresse.objects.filter(
         servidor=request.user).last()
@@ -981,7 +1015,7 @@ def servidor(request):
         declaracao__manifestacao__servidor=request.user)
 
     context = {
-        'check_cadastro': check_cadastro,
+        'check_dados': check_dados,
         'last_manifestacao_interesse': last_manifestacao_interesse,
         'last_declaracao_nao_enquadramento': last_declaracao_nao_enquadramento,
         'last_plano_trabalho': last_plano_trabalho,
@@ -1281,7 +1315,7 @@ def download_portaria_doe(request, pk):
 
 @login_required
 def download_docx(request, model, pk):
-    if request.user.groups.filter(name='CIGT'):
+    if True:  # request.user.groups.filter(name='CIGT'):
         if model == 'portaria':
             obj = PortariasPublicadasDOE.objects.get(pk=pk)
             nome_arquivo = 'portaria_teletrabalho_doe'

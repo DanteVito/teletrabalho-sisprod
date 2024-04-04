@@ -105,12 +105,14 @@ class PlanoTrabalhoForm(ModelForm):
         super(PlanoTrabalhoForm,
               self).__init__(*args, **kwargs)
 
-        self.fields['manifestacao'] = forms.ModelChoiceField(
-            queryset=ManifestacaoInteresse.objects.filter(servidor=self.user),
-            initial=ManifestacaoInteresse.objects.filter(
-                servidor=self.user).last(),
-            widget=forms.Select(),
-        )
+        if not self.user.groups.filter(name="CIGT"):
+            self.fields['manifestacao'] = forms.ModelChoiceField(
+                queryset=ManifestacaoInteresse.objects.filter(
+                    servidor=self.user),
+                initial=ManifestacaoInteresse.objects.filter(
+                    servidor=self.user).last(),
+                widget=forms.Select(),
+            )
 
         for field_name, field in self.fields.items():
             field.widget.attrs['data-field'] = field_name

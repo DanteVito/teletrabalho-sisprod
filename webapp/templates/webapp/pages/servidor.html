@@ -4,29 +4,28 @@
 
 {% block content %}
 
-<h2>Servidor</h2>
+<section class="section">
+    <h2 class="title is-2">Servidor</h2>
 
-{% if check_cadastro %}
-<h3>Dados cadastrais faltantes:</h3>
-<ul>
-    {% for dado in check_cadastro %} 
-        <li>{{ dado }}</li>
-    {% endfor %}
-</ul>
-<a href="{% url 'webapp:dados_cadastrais' %}">Atualize seu cadastro!</a>
+    {% if check_dados %}
+    <div class="notification is-warning">
+        <p>Atualize seus <a href="{% url 'webapp:dados_cadastrais' %}">Dados Cadastrais</a> para poder prosseguir!</p>
+    </div>
+    {% else %}
+        <ol>
+            <li><a href="{% url 'webapp:dados_cadastrais' %}">Dados Cadastrais</a> {% if not check_dados %}[OK]{% else %}[OMISSO]{% endif %}</li>
+            <li><a href="{% url 'webapp:manifestacao_interesse' %}">Manifestação de Interesse</a> {% if last_manifestacao_interesse %}[OK]{% else %}[OMISSO]{% endif %}</li>
+            <li><a href="{% url 'webapp:declaracao_nao_enquadramento' %}">Declaração de Não Enquadramento nas Vedações</a> {% if last_declaracao_nao_enquadramento %}[OK]{% else %}[OMISSO]{% endif %}</li>
+            {% if autorizacoes_excecao_chefia %}
+                {% for autorizacao in autorizacoes_excecao_chefia %}
+                    <li>{{ autorizacao }} - {% if autorizacao.aprovado_gabinete == 'aprovado' %}[APROVADO: GABINETE]{% elif autorizacao.aprovado_gabinete == 'reprovado' %}[REPROVADO: GABINETE]{% else %}[PENDENTE GABINETE]{% endif %}</li>
+                {% endfor %}
+            {% endif %}
+            <li><a href="{% url 'webapp:plano_trabalho' %}">Plano de Trabalho</a> {% if last_plano_trabalho %}[OK]{% else %}[OMISSO]{% endif %}</li>
+        </ol>
+    </section>
 {% endif %}
 
-<ol>
-    <li><a href="{% url 'webapp:dados_cadastrais' %}">Dados Cadastrais</a> {% if not check_cadastro %}[OK]{% else %}[OMISSO]{% endif %}</li>
-    <li><a href="{% url 'webapp:manifestacao_interesse' %}">Manifestação de Interesse</a> {% if last_manifestacao_interesse %}[OK]{% else %}[OMISSO]{% endif %}</li>
-    <li><a href="{% url 'webapp:declaracao_nao_enquadramento' %}">Declaração de Não Enquadramento nas Vedações</a> {% if last_declaracao_nao_enquadramento %}[OK]{% else %}[OMISSO]{% endif %}</li>
-    {% if autorizacoes_excecao_chefia %}
-        {% for autorizacao in autorizacoes_excecao_chefia %}
-            <li>{{ autorizacao }} - {% if autorizacao.aprovado_gabinete == 'aprovado' %}[APROVADO: GABINETE]{% elif autorizacao.aprovado_gabinete == 'reprovado' %}[REPROVADO: GABINETE]{% else %}[PENDENTE GABINETE]{% endif %}</li>
-        {% endfor %}
-    {% endif %}
-    <li><a href="{% url 'webapp:plano_trabalho' %}">Plano de Trabalho</a> {% if last_plano_trabalho %}[OK]{% else %}[OMISSO]{% endif %}</li>
-</ol>
 
 
 {% endblock%}

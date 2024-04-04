@@ -6,6 +6,10 @@
 
 <h2 class="title is-2">Dados Cadastrais</h2>
 
+{% if check_dados %}
+    <div class="notification is-warning">Preencha os dados faltantes para prosseguir!</div>
+{% endif %}
+
 <div class="field">
     <label for="" class="label">Grupos do Usuário</label>
     {% for group in user_groups %}{{ group.name }} | {% endfor %}
@@ -47,6 +51,9 @@
         <div class="control">
             {{ form.ramal }}
         </div>
+        {% if not form.ramal.initial %}
+            <p class="help is-danger">Preencha esse campo!</p>
+        {% endif %}
     </div>
 
     <div class="field">
@@ -54,6 +61,9 @@
         <div class="control">
             {{ form.celular }}
         </div>
+        {% if not form.celular.initial %}
+            <p class="help is-danger">Preencha esse campo!</p>
+        {% endif %}
     </div>
 
     <div class="field">
@@ -61,6 +71,9 @@
         <div class="control">
             {{ form.email }}
         </div>
+        {% if not form.email.initial %}
+            <p class="help is-danger">Preencha esse campo!</p>
+        {% endif %}
     </div>
 
     <div class="field">
@@ -68,6 +81,9 @@
         <div class="control">
             {{ form.cidade }}
         </div>
+        {% if not form.cidade.initial %}
+            <p class="help is-danger">Preencha esse campo!</p>
+        {% endif %}
     </div>
 
     <div class="field">

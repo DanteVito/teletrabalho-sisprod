@@ -85,11 +85,14 @@
 
         
     {% elif tipo_form == 'edit' %}
+        <div class="periodos-edit">
+            {% for periodo in periodos_teletrabalho %}
+                <p><a href="{% url 'webapp:periodo_teletrabalho' periodo.pk %}">{{ periodo }} plano_trabalho_id: {{ periodo.plano_trabalho_id }} período_id: {{ periodo.id}}</a> - <a href="{% url 'webapp:periodo_teletrabalho_delete' periodo.pk %}">excluir</a></p>
+            {% endfor %}
+        </div>
     
-    {% for periodo in periodos_teletrabalho %}
-        <p><a href="{% url 'webapp:periodo_teletrabalho' periodo.pk %}">{{ periodo }} plano_trabalho_id: {{ periodo.plano_trabalho_id }} período_id: {{ periodo.id}}</a> - <a href="{% url 'webapp:periodo_teletrabalho_delete' periodo.pk %}">excluir</a></p>
-        {% endfor %}
     {% endif %}
+
 
     <hr>
 
