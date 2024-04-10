@@ -5,24 +5,55 @@ from django.forms import BaseInlineFormSet, ModelForm, inlineformset_factory
 from authentication.models import User
 
 from .models import (AtividadesTeletrabalho, AutorizacoesExcecoes,
-                     AvaliacaoChefia, DeclaracaoNaoEnquadramentoVedacoes,
-                     ManifestacaoInteresse, PeriodoTeletrabalho, PlanoTrabalho,
-                     PortariasPublicadasDOE, ProtocoloAutorizacaoTeletrabalho)
+                     AvaliacaoChefia, Cargo,
+                     DeclaracaoNaoEnquadramentoVedacoes, ManifestacaoInteresse,
+                     PeriodoTeletrabalho, PlanoTrabalho,
+                     PortariasPublicadasDOE, ProtocoloAutorizacaoTeletrabalho,
+                     Servidor)
 
 
 class UserForm(ModelForm):
     class Meta:
         model = User
         fields = (
+            'username',
+            'nome',
+            'rg',
+        )
+
+
+class ServidorForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user')
+        servidor = Servidor.objects.get(user=self.user)
+        super(ServidorForm, self).__init__(*args, **kwargs)
+
+        self.fields['user'] = forms.ModelChoiceField(
+            queryset=User.objects.filter(id=self.user.id),
+            initial=User.objects.filter(
+                id=self.user.id).first(),
+        )
+
+        self.fields['cargo'] = forms.ModelChoiceField(
+            queryset=Cargo.objects.filter(id=servidor.cargo.id),
+            initial=Cargo.objects.filter(
+                id=servidor.cargo.id).first(),
+        )
+
+    class Meta:
+        model = Servidor
+        fields = (
+            'user',
+            'cargo',
             'ramal',
             'celular',
             'email',
             'cidade',
         )
         widgets = {
-            'ramal': forms.NumberInput(attrs={'class': 'input'}),
+            'ramal': forms.TextInput(attrs={'class': 'input'}),
             'celular': forms.TextInput(attrs={'class': 'input'}),
-            'email': forms.EmailInput(attrs={'class': 'input'}),
+            'email': forms.TextInput(attrs={'class': 'input'}),
             'cidade': forms.TextInput(attrs={'class': 'input'}),
         }
 

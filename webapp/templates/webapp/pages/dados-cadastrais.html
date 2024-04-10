@@ -6,10 +6,6 @@
 
 <h2 class="title is-2">Dados Cadastrais</h2>
 
-{% if check_dados %}
-    <div class="notification is-warning">Preencha os dados faltantes para prosseguir!</div>
-{% endif %}
-
 <div class="field">
     <label for="" class="label">Grupos do Usuário</label>
     {% for group in user_groups %}{{ group.name }} | {% endfor %}
@@ -36,22 +32,30 @@
     </div>
 </div>
 
-<div class="field">
-    <label class="label">Cargo</label>
-    <div class="control">
-        <input type="text" class="input" value="{{ request.user.cargo}}" disabled>
-    </div>
-</div>
-
 <form method="POST">
     {% csrf_token %}
 
     <div class="field">
+        <label class="label">Usuário</label>
+        <div class="control">
+            <div class="select">{{ form_servidor.user }}</div>
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Cargo</label>
+        <div class="control">
+            <div class="select">{{ form_servidor.cargo }}</div>
+        </div>
+    </div>
+
+
+    <div class="field">
         <label for="" class="label">Ramal</label>
         <div class="control">
-            {{ form.ramal }}
+            {{ form_servidor.ramal }}
         </div>
-        {% if not form.ramal.initial %}
+        {% if not form_servidor.ramal.initial %}
             <p class="help is-danger">Preencha esse campo!</p>
         {% endif %}
     </div>
@@ -59,9 +63,9 @@
     <div class="field">
         <label for="" class="label">Celular</label>
         <div class="control">
-            {{ form.celular }}
+            {{ form_servidor.celular }}
         </div>
-        {% if not form.celular.initial %}
+        {% if not form_servidor.celular.initial %}
             <p class="help is-danger">Preencha esse campo!</p>
         {% endif %}
     </div>
@@ -69,9 +73,9 @@
     <div class="field">
         <label for="" class="label">E-mail</label>
         <div class="control">
-            {{ form.email }}
+            {{ form_servidor.email }}
         </div>
-        {% if not form.email.initial %}
+        {% if not form_servidor.email.initial %}
             <p class="help is-danger">Preencha esse campo!</p>
         {% endif %}
     </div>
@@ -79,9 +83,9 @@
     <div class="field">
         <label for="" class="label">Cidade</label>
         <div class="control">
-            {{ form.cidade }}
+            {{ form_servidor.cidade }}
         </div>
-        {% if not form.cidade.initial %}
+        {% if not form_servidor.cidade.initial %}
             <p class="help is-danger">Preencha esse campo!</p>
         {% endif %}
     </div>

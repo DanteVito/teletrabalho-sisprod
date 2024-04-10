@@ -12,19 +12,20 @@ from unidecode import unidecode
 
 from authentication.models import User
 
-from .models import (AtividadesTeletrabalho, AutorizacoesExcecoes,
-                     AvaliacaoChefia, ComissaoInterna,
+from .models import (FGT, AtividadesTeletrabalho, AutorizacoesExcecoes,
+                     AvaliacaoChefia, Cargo, Chefia, ComissaoInterna,
                      ControleMensalTeletrabalho,
                      DeclaracaoNaoEnquadramentoVedacoes,
                      DespachoArquivamentoManifestacaoCIGT,
                      DespachoCIGTPlanoTrabalho, DespachoEncaminhaAvaliacao,
                      DespachoGenericoCIGT, DespachoRetornoAvaliacao,
                      ListaAtividades, ListaIndicadoresMetricasTeletrabalho,
-                     ListaPostosTrabalho, ListaSistemasTeletrabalho,
-                     ManifestacaoInteresse, ModelChangeLogsModel,
-                     ModeloDocumento, Numeracao, PeriodoTeletrabalho,
-                     PlanoTrabalho, PortariasPublicadasDOE,
-                     ProtocoloAutorizacaoTeletrabalho, Setor, Unidade)
+                     ListaSistemasTeletrabalho, Lotacao, ManifestacaoInteresse,
+                     ModelChangeLogsModel, ModeloDocumento, Numeracao,
+                     PeriodoTeletrabalho, PlanoTrabalho,
+                     PortariasPublicadasDOE, PostosTrabalho,
+                     ProtocoloAutorizacaoTeletrabalho, Servidor, Setor,
+                     Unidade)
 
 
 @admin.action(description="Gerar protocolo DOCX")
@@ -312,7 +313,7 @@ class ListaAtividadeAdmin(admin.ModelAdmin):
     search_fields = ('atividade', )
 
 
-class ListaPostosTrabalhoAdmin(admin.ModelAdmin):
+class PostosTrabalhoAdmin(admin.ModelAdmin):
     search_fields = ('setor', 'posto', )
 
 
@@ -447,7 +448,7 @@ class PlanoTrabalhoAdmin(admin.ModelAdmin):
             if db_field.name == 'atividade':
                 kwargs["queryset"] = AtividadesTeletrabalho.objects.filter(adicionado_por=request.user)  # noqa E501
             # if db_field.name == 'posto_trabalho':
-            #     kwargs["queryset"] = ListaPostosTrabalho.objects.exclude(tipo='PRESENCIAL') # noqa E501
+            #     kwargs["queryset"] = PostosTrabalho.objects.exclude(tipo='PRESENCIAL') # noqa E501
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -900,7 +901,7 @@ admin.site.register(DespachoArquivamentoManifestacaoCIGT, DespachoArquivamentoMa
 admin.site.register(ModeloDocumento, ModeloDocumentAdmin)
 admin.site.register(ComissaoInterna, ComissaoInternaAdmin)
 admin.site.register(Setor, SetorAdmin)
-admin.site.register(ListaPostosTrabalho, ListaPostosTrabalhoAdmin)
+admin.site.register(PostosTrabalho, PostosTrabalhoAdmin)
 admin.site.register(Unidade, UnidadeAdmin)
 admin.site.register(DeclaracaoNaoEnquadramentoVedacoes, DeclaracaoNaoEnquadramentoVedacoesAdmin)  # noqa E501
 admin.site.register(DespachoEncaminhaAvaliacao, DespachoEncaminhaAvaliacaoAdmin)  # noqa E501
@@ -919,3 +920,9 @@ admin.site.register(ControleMensalTeletrabalho,
                     ControleMensalTeletrabalhoAdmin)
 
 admin.site.register(PortariasPublicadasDOE, PortariasPublicadasDOEModelAdmin)
+
+admin.site.register(FGT)
+admin.site.register(Servidor)
+admin.site.register(Lotacao)
+admin.site.register(Cargo)
+admin.site.register(Chefia)

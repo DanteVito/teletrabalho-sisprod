@@ -19,10 +19,10 @@
 setor = models.ForeignKey(Setor, related_name='%(app_label)s_%(class)s_setor', on_delete=models.CASCADE)  # noqa E501
 servidor = models.ForeignKey(User, related_name='%(app_label)s_%(class)s_servidor', on_delete=models.CASCADE)  # noqa E501
 funcao = models.CharField("Função", max_length=255)
-posto_trabalho = models.ForeignKey(ListaPostosTrabalho, related_name='%(app_label)s_%(class)s_posto_trabalho_servidor', on_delete=models.CASCADE)  # noqa E501
+posto_trabalho = models.ForeignKey(PostosTrabalho, related_name='%(app_label)s_%(class)s_posto_trabalho_servidor', on_delete=models.CASCADE)  # noqa E501
 chefia_imediata = models.ForeignKey(User, related_name='%(app_label)s_%(class)s_chefia_imediata', on_delete=models.CASCADE)  # noqa E501
 funcao_chefia = models.CharField("Função Chefia Imediata", max_length=255)
-posto_trabalho_chefia = models.ForeignKey(ListaPostosTrabalho, related_name='%(app_label)s_%(class)s_posto_trabalho_chefia', on_delete=models.CASCADE)  # noqa E501
+posto_trabalho_chefia = models.ForeignKey(PostosTrabalho, related_name='%(app_label)s_%(class)s_posto_trabalho_chefia', on_delete=models.CASCADE)  # noqa E501
 aprovado_chefia = models.CharField(
     choices=_APROVACAO, max_length=16, null=True, blank=True)
 justificativa_chefia = models.TextField() {% endcomment %}

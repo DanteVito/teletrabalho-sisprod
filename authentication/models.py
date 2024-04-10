@@ -49,12 +49,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField("Usuário", max_length=255, unique=True)
     nome = models.CharField("Nome", max_length=255)
     rg = models.CharField("RG", max_length=255)
-    cargo = models.CharField("Cargo", max_length=255)
-    ramal = models.IntegerField("Ramal", null=True, blank=True)
-    celular = models.CharField(
-        "Celular", max_length=255, null=True, blank=True)
-    email = models.CharField("E-mail", max_length=255, null=True, blank=True)
-    cidade = models.CharField("Cidade", max_length=255, null=True, blank=True)
     is_staff = models.BooleanField("Membro da equipe", default=False, help_text="Define se o usuário tem acesso ao admin")  # noqa E501
     is_active = models.BooleanField("Ativo", default=False, help_text="Define se o usuário ativou a conta no email")  # noqa E501
     date_joined = models.DateTimeField("Criação", auto_now_add=True)
@@ -74,14 +68,14 @@ class User(AbstractBaseUser, PermissionsMixin):
         """
         return {group.name for group in self.groups.all()}
 
-    def check_dados(self):
-        _DADOS = ('ramal', 'celular', 'email', 'cidade')
-        missing_data = []
-        for d in _DADOS:
-            dado = getattr(self, d)
-            if not dado:
-                missing_data.append(d)
-        return missing_data
+    # def check_dados(self):
+    #     _DADOS = ('ramal', 'celular', 'email', 'cidade')
+    #     missing_data = []
+    #     for d in _DADOS:
+    #         dado = getattr(self, d)
+    #         if not dado:
+    #             missing_data.append(d)
+    #     return missing_data
 
     def get_dict(self):
         """
@@ -93,10 +87,10 @@ class User(AbstractBaseUser, PermissionsMixin):
             'nome': self.nome,
             'rg': self.rg,
             'cargo': self.cargo,
-            'ramal': self.ramal,
-            'celular': self.celular,
-            'email': self.email,
-            'cidade': self.cidade,
+            # 'ramal': self.ramal,
+            # 'celular': self.celular,
+            # 'email': self.email,
+            # 'cidade': self.cidade,
             'is_staff': self.is_staff,
             'is_active': self.is_active,
             'date_joined': self.date_joined,

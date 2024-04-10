@@ -6,9 +6,8 @@ from .models import User
 
 class UserAdmin(admin.ModelAdmin):
     search_fields = ('nome', 'username', 'rg', )
-    list_display = ('username', 'nome', 'cargo')
-    fields = ('nome', 'username', 'rg', 'cargo',
-              'ramal', 'celular', 'email', 'cidade', 'groups', 'is_active')
+    list_display = ('username', 'nome',)
+    fields = ('nome', 'username', 'rg', 'groups', 'is_active')
 
     def get_queryset(self, request):
         if request.user.is_superuser:

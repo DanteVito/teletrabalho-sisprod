@@ -22,7 +22,8 @@ from render.forms import (AtividadeCumprimentoForm, AtividadesTeletrabalhoForm,
                           PlanoTrabalhoFormAprovadoCIGTForm,
                           PortariaDoeEditForm,
                           ProtocoloAutorizacaoTeletrabalhoAprovaForm,
-                          ProtocoloAutorizacaoTeletrabalhoForm, UserForm)
+                          ProtocoloAutorizacaoTeletrabalhoForm, ServidorForm,
+                          UserForm)
 from render.models import (AtividadesTeletrabalho, AutorizacoesExcecoes,
                            AvaliacaoChefia, ComissaoInterna,
                            ControleMensalTeletrabalho,
@@ -30,7 +31,7 @@ from render.models import (AtividadesTeletrabalho, AutorizacoesExcecoes,
                            DespachoCIGTPlanoTrabalho, ManifestacaoInteresse,
                            ModeloDocumento, Numeracao, PeriodoTeletrabalho,
                            PlanoTrabalho, PortariasPublicadasDOE,
-                           ProtocoloAutorizacaoTeletrabalho)
+                           ProtocoloAutorizacaoTeletrabalho, Servidor)
 
 
 @login_required
@@ -43,10 +44,13 @@ def home(request):
 @login_required
 def dados_cadastrais(request):
     user_groups = request.user.groups.all()
-    form = UserForm(instance=request.user)
+    # form_user = UserForm(instance=request.user)
+    servidor = Servidor.objects.get(user__id=request.user.id)
+    form_servidor = ServidorForm(user=request.user, instance=servidor)
 
     if request.method == 'POST':
-        form = UserForm(request.POST, instance=request.user)
+        form = ServidorForm(request.POST, instance=servidor, user=request.user)
+
         if form.is_valid():
             form.save()
             return redirect(reverse('webapp:servidor'))
@@ -56,8 +60,8 @@ def dados_cadastrais(request):
                 messages.error(request, e)
 
     context = {
-        'check_dados': request.user.check_dados(),
-        'form': form,
+        # 'form_user': form,
+        'form_servidor': form_servidor,
         'user_groups': user_groups,
     }
 
@@ -66,7 +70,9 @@ def dados_cadastrais(request):
 
 @login_required
 def manifestacao_interesse(request):
-    if request.user.check_dados():
+    servidor = Servidor.objects.get(user=request.user)
+    check_dados = servidor.check_dados()
+    if check_dados:
         return redirect(reverse('webapp:dados_cadastrais'))
 
     manifestacoes_servidor = ManifestacaoInteresse.objects.filter(
@@ -203,7 +209,9 @@ def manifestacao_interesse_delete(request, pk):
 
 @login_required
 def declaracao_nao_enquadramento(request):
-    if request.user.check_dados():
+    servidor = Servidor.objects.get(user=request.user)
+    check_dados = servidor.check_dados()
+    if check_dados:
         return redirect(reverse('webapp:dados_cadastrais'))
     declaracoes = DeclaracaoNaoEnquadramentoVedacoes.objects.filter(
         manifestacao__servidor=request.user)
@@ -336,7 +344,9 @@ def declaracao_nao_enquadramento_delete(request, pk):
 
 @login_required
 def plano_trabalho(request):
-    if request.user.check_dados():
+    servidor = Servidor.objects.get(user=request.user)
+    check_dados = servidor.check_dados()
+    if check_dados:
         return redirect(reverse('webapp:dados_cadastrais'))
     if not ManifestacaoInteresse.objects.filter(
             servidor=request.user):
@@ -1000,7 +1010,8 @@ def protocolo_autorizacao_teletrabalho_edit(request, pk):
 @login_required
 def servidor(request):
     # checar o cadastro
-    check_dados = request.user.check_dados()
+    servidor = Servidor.objects.get(user=request.user)
+    check_dados = servidor.check_dados()
     # verifica se existe Manifestacao de Interesse
     last_manifestacao_interesse = ManifestacaoInteresse.objects.filter(
         servidor=request.user).last()

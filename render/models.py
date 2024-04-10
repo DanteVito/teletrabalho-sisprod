@@ -40,6 +40,7 @@ class ComissaoInterna(models.Model):
 
 class Unidade(models.Model):
     nome = models.CharField(max_length=255)
+    sigla = models.CharField(max_length=16)
 
     def __str__(self):
         return self.nome
@@ -50,10 +51,13 @@ class Unidade(models.Model):
 
 
 class Setor(models.Model):
+    unidade = models.ForeignKey(
+        Unidade, related_name="%(app_label)s_%(class)s_unidade", on_delete=models.CASCADE)
     nome = models.CharField(max_length=255)
+    sigla = models.CharField(max_length=16)
 
     def __str__(self):
-        return self.nome
+        return f'{self.unidade} | {self.sigla}'
 
     class Meta:
         ordering = ['nome']
@@ -61,8 +65,9 @@ class Setor(models.Model):
         verbose_name_plural = 'Admin | Setores'
 
 
-class ListaPostosTrabalho(models.Model):
-    setor = models.CharField(max_length=255, null=True, blank=True)
+class PostosTrabalho(models.Model):
+    setor = models.ForeignKey(
+        Setor, related_name="%(app_label)s_%(class)s_setor", on_delete=models.CASCADE)
     posto = models.CharField(max_length=255)
     tipo = models.CharField(max_length=255, null=True, blank=True)
 
@@ -72,6 +77,88 @@ class ListaPostosTrabalho(models.Model):
     class Meta:
         verbose_name = 'Lista de Postos de Trabalho'
         verbose_name_plural = 'Admin | Lista de Postos de Trabalho'
+
+
+class Cargo(models.Model):
+    nome = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f'{self.nome}'
+
+    class Meta:
+        verbose_name = 'Cargo'
+        verbose_name_plural = 'Admin | Cargos'
+
+
+class FGT(models.Model):
+    nome = models.CharField(max_length=255)
+    simbolo = models.CharField(max_length=16)
+
+    def __str__(self):
+        return f'{self.nome}'
+
+    class Meta:
+        verbose_name = 'FGT'
+        verbose_name_plural = 'Admin | FGT'
+
+
+class Servidor(models.Model):
+    user = models.ForeignKey(
+        User, related_name="%(app_label)s_%(class)s_user", on_delete=models.CASCADE)
+    cargo = models.ForeignKey(
+        Cargo, related_name="%(app_label)s_%(class)s_cargo", on_delete=models.CASCADE)
+    ramal = models.IntegerField("Ramal", null=True, blank=True)
+    celular = models.CharField(
+        "Celular", max_length=255, null=True, blank=True)
+    email = models.CharField("E-mail", max_length=255, null=True, blank=True)
+    cidade = models.CharField("Cidade", max_length=255, null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.user.nome}'
+    
+    def check_dados(self):
+        _DADOS = ('ramal', 'celular', 'email', 'cidade')
+        missing_data = []
+        for d in _DADOS:
+            dado = getattr(self, d)
+            if not dado:
+                missing_data.append(d)
+        return missing_data
+
+    class Meta:
+        verbose_name = 'Servidor'
+        verbose_name_plural = 'Admin | Servidores'
+
+
+class Lotacao(models.Model):
+    servidor = models.ForeignKey(
+        Servidor, related_name="%(app_label)s_%(class)s_servidor", on_delete=models.CASCADE)
+    posto_trabalho = models.ForeignKey(
+        PostosTrabalho, related_name="%(app_label)s_%(class)s_posto_trabalho", on_delete=models.CASCADE)
+    data_inicio = models.DateField()
+    data_fim = models.DateField(null=True, blank=True)
+    atual = models.BooleanField()
+
+    def __str__(self):
+        return f'{self.servidor.user.nome} | {self.posto_trabalho.setor.sigla} | {self.data_inicio}/{self.data_fim}'
+
+    class Meta:
+        verbose_name = 'Lotação'
+        verbose_name_plural = 'Admin | Lotação'
+
+
+class Chefia(models.Model):
+    setor = models.ForeignKey(
+        Setor, related_name="%(app_label)s_%(class)s_setor", on_delete=models.CASCADE)
+    chefia = models.ForeignKey(
+        Lotacao, related_name="%(app_label)s_%(class)s_chefia", on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.setor} : {self.chefia.servidor.user.nome}'
+
+    class Meta:
+        verbose_name = 'Chefia'
+        verbose_name_plural = 'Admin | Chefias'
 
 
 class ModeloDocumento(models.Model):
@@ -352,10 +439,10 @@ class ManifestacaoInteresse(BaseModelGeneral):
     setor = models.ForeignKey(Setor, related_name='%(app_label)s_%(class)s_setor', on_delete=models.CASCADE)  # noqa E501
     servidor = models.ForeignKey(User, related_name='%(app_label)s_%(class)s_servidor', on_delete=models.CASCADE)  # noqa E501
     funcao = models.CharField("Função", max_length=255)
-    posto_trabalho = models.ForeignKey(ListaPostosTrabalho, related_name='%(app_label)s_%(class)s_posto_trabalho_servidor', on_delete=models.CASCADE)  # noqa E501
+    posto_trabalho = models.ForeignKey(PostosTrabalho, related_name='%(app_label)s_%(class)s_posto_trabalho_servidor', on_delete=models.CASCADE)  # noqa E501
     chefia_imediata = models.ForeignKey(User, related_name='%(app_label)s_%(class)s_chefia_imediata', on_delete=models.CASCADE)  # noqa E501
     funcao_chefia = models.CharField("Função Chefia Imediata", max_length=255)
-    posto_trabalho_chefia = models.ForeignKey(ListaPostosTrabalho, related_name='%(app_label)s_%(class)s_posto_trabalho_chefia', on_delete=models.CASCADE)  # noqa E501
+    posto_trabalho_chefia = models.ForeignKey(PostosTrabalho, related_name='%(app_label)s_%(class)s_posto_trabalho_chefia', on_delete=models.CASCADE)  # noqa E501
     aprovado_chefia = models.CharField(
         choices=_APROVACAO, max_length=16, null=True, blank=True)
     justificativa_chefia = models.TextField()
