@@ -1,7 +1,8 @@
+from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand
 
-from contrib.data_migrate import (create_users, migrate,
-                                  migrate_setores_postos_de_trabalho)
+from contrib.data_migrate import (create_setores_postos_trabalho,
+                                  create_unidades, create_users, migrate)
 from render.models import (ListaAtividades,
                            ListaIndicadoresMetricasTeletrabalho,
                            ListaSistemasTeletrabalho, Unidade)
@@ -11,16 +12,20 @@ class Command(BaseCommand):
     help = "Make custom migrations to app models"
 
     def handle(self, *args, **kwargs):
+        # grupos
+        _GROUPS = ['SERVIDORES', 'CHEFIAS', 'GABINETE', 'CIGT']
 
-        # unidades
-        migrate(
-            'contrib/data/lista_unidades.txt',
-            model=Unidade,
-            field='nome')
+        for group_name in _GROUPS:
+            try:
+                group = Group.objects.get(name=group_name)
+                print(f'[ok] Grupo {group.name} já existe.')
+            except Group.DoesNotExist:
+                group = Group.objects.create(name=group_name)
+                print(f'[+] Grupo {group.name} criado.')
 
-        # setores e postos de trabalho
-        migrate_setores_postos_de_trabalho(
-            'contrib/data/postos_de_trabalho.txt')
+        # unidades, setores, postos de trabalho
+        create_unidades()
+        create_setores_postos_trabalho()
 
         # lista de atividades
         migrate('contrib/data/lista_atividades.txt',

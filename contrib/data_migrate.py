@@ -5,7 +5,8 @@ from django.db.utils import IntegrityError
 from unidecode import unidecode
 
 from authentication.models import User
-from render.models import PostosTrabalho, Setor, Unidade
+from render.models import (Cargo, Lotacao, PostosTrabalho, Servidor, Setor,
+                           Unidade)
 
 
 def strip_remove_ponctuation(s: str) -> str:
@@ -65,6 +66,16 @@ def create_setores_postos_trabalho(file='contrib/data/postos_de_trabalho.txt') -
 
 
 def create_users(file: str) -> None:
+    try:
+        admin = User.objects.create_superuser(
+            username='admin',
+            password='admin',
+            nome='admin',
+        )
+        print(f'[+ criado superusuário]: {admin.username}')
+    except IntegrityError:
+        ...
+
     with open(file, 'r', encoding='utf-8') as f:
         for item in f:
             data_item = item.strip().split(',')
@@ -73,16 +84,38 @@ def create_users(file: str) -> None:
                 'username': username,
                 'rg': data_item[1],
                 'nome': strip_remove_ponctuation(data_item[2]),
-                # 'cargo': strip_remove_ponctuation(data_item[3]),
                 'password': 'repr2024',
                 'is_active': True
             }
             try:
-                User.objects.create_user(**data)
-                print(f'[+] {data["username"]} - {data["nome"]} -> adicionado')
+                user = User.objects.create_user(**data)
+                print(f'[+] {user.username} - {user.nome} -> adicionado')
             except IntegrityError:
+                user = User.objects.get(username=username)
                 print(
-                    f'[!] {data["username"]} - {data["nome"]} -> já existente')
+                    f'[!] {user.username} - {user.nome} -> já existente')
+
+            # cria cargo
+            nome_cargo = strip_remove_ponctuation(data_item[3])
+            cargo, cargo_created = Cargo.objects.update_or_create(
+                nome=nome_cargo,
+            )
+            if cargo_created:
+                print(f'[+ cargo] {cargo}')
+            # cria servidor
+            servidor, servidor_created = Servidor.objects.update_or_create(
+                user=user,
+                cargo=cargo
+            )
+            if servidor_created:
+                print(f'[+ servidor] {servidor.user.nome}')
+
+            # cria lotacao
+            lotacao, lotacao_created = Lotacao.objects.update_or_create(
+                servidor=servidor
+            )
+            if lotacao_created:
+                print(f'[+ lotação] {lotacao}')
 
 
 def migrate(file: str, model, field: str) -> None:

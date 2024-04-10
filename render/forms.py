@@ -6,10 +6,10 @@ from authentication.models import User
 
 from .models import (AtividadesTeletrabalho, AutorizacoesExcecoes,
                      AvaliacaoChefia, Cargo,
-                     DeclaracaoNaoEnquadramentoVedacoes, ManifestacaoInteresse,
-                     PeriodoTeletrabalho, PlanoTrabalho,
-                     PortariasPublicadasDOE, ProtocoloAutorizacaoTeletrabalho,
-                     Servidor)
+                     DeclaracaoNaoEnquadramentoVedacoes, Lotacao,
+                     ManifestacaoInteresse, PeriodoTeletrabalho, PlanoTrabalho,
+                     PortariasPublicadasDOE, PostosTrabalho,
+                     ProtocoloAutorizacaoTeletrabalho, Servidor)
 
 
 class UserForm(ModelForm):
@@ -58,34 +58,54 @@ class ServidorForm(forms.ModelForm):
         }
 
 
+class LotacaoForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user')
+        servidor = Servidor.objects.get(user=self.user)
+        super(LotacaoForm, self).__init__(*args, **kwargs)
+
+        self.fields['servidor'] = forms.ModelChoiceField(
+            queryset=Servidor.objects.filter(id=servidor.id),
+            initial=Servidor.objects.filter(
+                id=servidor.id).first(),
+            widget=forms.Select(),
+        )
+
+        self.fields['posto_trabalho'] = forms.ModelChoiceField(
+            queryset=PostosTrabalho.objects.all(),
+            widget=forms.Select(),
+        )
+
+    class Meta:
+        model = Lotacao
+        fields = (
+            'servidor',
+            'posto_trabalho'
+        )
+
+
 class ManifestacaoInteresseForm(ModelForm):
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user')
+        lotacao = Lotacao.objects.get(servidor__user__id=self.user.id)
         super(ManifestacaoInteresseForm, self).__init__(*args, **kwargs)
 
-        self.fields['servidor'] = forms.ModelChoiceField(
-            queryset=User.objects.filter(id=self.user.id),
-            initial=User.objects.filter(
-                id=self.user.id).first(),
+        self.fields['lotacao'] = forms.ModelChoiceField(
+            queryset=Servidor.objects.filter(id=lotacao.id),
+            initial=Servidor.objects.filter(
+                id=lotacao.id).first(),
             widget=forms.Select(),
         )
 
     class Meta:
         model = ManifestacaoInteresse
         fields = (
-            'servidor',
-            'unidade',
-            'setor',
-            'funcao',
-            'posto_trabalho',
-            'chefia_imediata',
-            'funcao_chefia',
-            'posto_trabalho_chefia',
+            'lotacao',
         )
-        widgets = {
-            'funcao': forms.TextInput(attrs={'class': 'input'}),
-            'funcao_chefia': forms.TextInput(attrs={'class': 'input'}),
-        }
+        # widgets = {
+        #     'funcao': forms.TextInput(attrs={'class': 'input'}),
+        #     'funcao_chefia': forms.TextInput(attrs={'class': 'input'}),
+        # }
 
 
 class ManifestacaoInteresseAprovadoChefiaForm(ModelForm):

@@ -70,6 +70,7 @@ class PostosTrabalho(models.Model):
         Setor, related_name="%(app_label)s_%(class)s_setor", on_delete=models.CASCADE)
     posto = models.CharField(max_length=255)
     tipo = models.CharField(max_length=255, null=True, blank=True)
+    chefia = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.setor}: {self.posto}'
@@ -106,7 +107,7 @@ class Servidor(models.Model):
     user = models.ForeignKey(
         User, related_name="%(app_label)s_%(class)s_user", on_delete=models.CASCADE)
     cargo = models.ForeignKey(
-        Cargo, related_name="%(app_label)s_%(class)s_cargo", on_delete=models.CASCADE)
+        Cargo, related_name="%(app_label)s_%(class)s_cargo", on_delete=models.CASCADE, null=True, blank=True)
     ramal = models.IntegerField("Ramal", null=True, blank=True)
     celular = models.CharField(
         "Celular", max_length=255, null=True, blank=True)
@@ -115,7 +116,7 @@ class Servidor(models.Model):
 
     def __str__(self):
         return f'{self.user.nome}'
-    
+
     def check_dados(self):
         _DADOS = ('ramal', 'celular', 'email', 'cidade')
         missing_data = []
@@ -134,13 +135,13 @@ class Lotacao(models.Model):
     servidor = models.ForeignKey(
         Servidor, related_name="%(app_label)s_%(class)s_servidor", on_delete=models.CASCADE)
     posto_trabalho = models.ForeignKey(
-        PostosTrabalho, related_name="%(app_label)s_%(class)s_posto_trabalho", on_delete=models.CASCADE)
-    data_inicio = models.DateField()
+        PostosTrabalho, related_name="%(app_label)s_%(class)s_posto_trabalho", on_delete=models.CASCADE, blank=True, null=True)
+    data_inicio = models.DateField(default=timezone.now)
     data_fim = models.DateField(null=True, blank=True)
-    atual = models.BooleanField()
+    atual = models.BooleanField(default=True)
 
     def __str__(self):
-        return f'{self.servidor.user.nome} | {self.posto_trabalho.setor.sigla} | {self.data_inicio}/{self.data_fim}'
+        return f'Lotação: {self.servidor.user.nome}'
 
     class Meta:
         verbose_name = 'Lotação'
@@ -435,65 +436,58 @@ class ManifestacaoInteresse(BaseModelGeneral):
         ('aprovado', 'Aprovado'),
         ('reprovado', 'Reprovado'),
     )
-    unidade = models.ForeignKey(Unidade, related_name='%(app_label)s_%(class)s_unidade', on_delete=models.CASCADE, null=True)  # noqa E501
-    setor = models.ForeignKey(Setor, related_name='%(app_label)s_%(class)s_setor', on_delete=models.CASCADE)  # noqa E501
-    servidor = models.ForeignKey(User, related_name='%(app_label)s_%(class)s_servidor', on_delete=models.CASCADE)  # noqa E501
-    funcao = models.CharField("Função", max_length=255)
-    posto_trabalho = models.ForeignKey(PostosTrabalho, related_name='%(app_label)s_%(class)s_posto_trabalho_servidor', on_delete=models.CASCADE)  # noqa E501
-    chefia_imediata = models.ForeignKey(User, related_name='%(app_label)s_%(class)s_chefia_imediata', on_delete=models.CASCADE)  # noqa E501
-    funcao_chefia = models.CharField("Função Chefia Imediata", max_length=255)
-    posto_trabalho_chefia = models.ForeignKey(PostosTrabalho, related_name='%(app_label)s_%(class)s_posto_trabalho_chefia', on_delete=models.CASCADE)  # noqa E501
+    lotacao = models.ForeignKey(Lotacao, related_name='%(app_label)s_%(class)s_lotacao', on_delete=models.CASCADE, null=True, blank=True)  # noqa E501
     aprovado_chefia = models.CharField(
         choices=_APROVACAO, max_length=16, null=True, blank=True)
     justificativa_chefia = models.TextField()
 
     def __str__(self) -> str:
-        return f'manifestação id:{self.id} - servidor:{self.servidor} | criação:{self.data_criacao.strftime("%d/%m/%Y")}'
+        return f'manifestação id:{self.id} | criação:{self.data_criacao.strftime("%d/%m/%Y")}'
 
-    @classmethod
-    def get_manifestacoes_subordinados(cls, chefia_imediata):
-        """
-        Método que retorna todas as manifestações de interesse
-        para uma chefia imediata
-        """
-        return cls.objects.filter(chefia_imediata=chefia_imediata)
+    # @classmethod
+    # def get_manifestacoes_subordinados(cls, chefia_imediata):
+    #     """
+    #     Método que retorna todas as manifestações de interesse
+    #     para uma chefia imediata
+    #     """
+    #     return cls.objects.filter(chefia_imediata=chefia_imediata)
 
-    def clean(self):
-        # bloqueia a edicao depois que a manifestacao for aprovada ou reprovada
-        try:
-            manifestacao_old = ManifestacaoInteresse.objects.get(id=self.id)
-            if manifestacao_old.aprovado_chefia:
-                raise ValidationError(
-                    "Não é possível editar uma Manifestação de Interesse já aprovada/reprovada pela Chefia Imediata!")
-        except ObjectDoesNotExist:
-            ...
+    # def clean(self):
+    #     # bloqueia a edicao depois que a manifestacao for aprovada ou reprovada
+    #     try:
+    #         manifestacao_old = ManifestacaoInteresse.objects.get(id=self.id)
+    #         if manifestacao_old.aprovado_chefia:
+    #             raise ValidationError(
+    #                 "Não é possível editar uma Manifestação de Interesse já aprovada/reprovada pela Chefia Imediata!")
+    #     except ObjectDoesNotExist:
+    #         ...
 
-        # servidor
-        if not self.servidor.ramal:
-            raise ValidationError(
-                "Preecha o campo 'Ramal' no cadastro do usuário (servidor)")
-        if not self.servidor.celular:
-            raise ValidationError(
-                "Preecha o campo 'Celular' no cadastro do usuário (servidor)")
-        if not self.servidor.email:
-            raise ValidationError(
-                "Preecha o campo 'E-mail' no cadastro do usuário (servidor)")
-        if not self.servidor.cidade:
-            raise ValidationError(
-                "Preecha o campo 'Cidade' no cadastro do usuário (servidor)")
-        # chefia
-        if not self.chefia_imediata.ramal:
-            raise ValidationError(
-                "Preecha o campo 'Ramal' no cadastro do usuário (chefia imediata)")
-        if not self.chefia_imediata.celular:
-            raise ValidationError(
-                "Preecha o campo 'Celular' no cadastro do usuário (chefia imediata)")
-        if not self.chefia_imediata.email:
-            raise ValidationError(
-                "Preecha o campo 'E-mail' no cadastro do usuário (chefia imediata)")
-        if not self.chefia_imediata.cidade:
-            raise ValidationError(
-                "Preecha o campo 'Cidade' no cadastro do usuário (chefia imediata)")
+    #     # servidor
+    #     if not self.servidor.ramal:
+    #         raise ValidationError(
+    #             "Preecha o campo 'Ramal' no cadastro do usuário (servidor)")
+    #     if not self.servidor.celular:
+    #         raise ValidationError(
+    #             "Preecha o campo 'Celular' no cadastro do usuário (servidor)")
+    #     if not self.servidor.email:
+    #         raise ValidationError(
+    #             "Preecha o campo 'E-mail' no cadastro do usuário (servidor)")
+    #     if not self.servidor.cidade:
+    #         raise ValidationError(
+    #             "Preecha o campo 'Cidade' no cadastro do usuário (servidor)")
+    #     # chefia
+    #     if not self.chefia_imediata.ramal:
+    #         raise ValidationError(
+    #             "Preecha o campo 'Ramal' no cadastro do usuário (chefia imediata)")
+    #     if not self.chefia_imediata.celular:
+    #         raise ValidationError(
+    #             "Preecha o campo 'Celular' no cadastro do usuário (chefia imediata)")
+    #     if not self.chefia_imediata.email:
+    #         raise ValidationError(
+    #             "Preecha o campo 'E-mail' no cadastro do usuário (chefia imediata)")
+    #     if not self.chefia_imediata.cidade:
+    #         raise ValidationError(
+    #             "Preecha o campo 'Cidade' no cadastro do usuário (chefia imediata)")
 
     def get_context_docx(self):
         context = {

@@ -14,7 +14,7 @@ from render.forms import (AtividadeCumprimentoForm, AtividadesTeletrabalhoForm,
                           AutorizacoesExcecoesAprovaForm,
                           AutorizacoesExcecoesForm,
                           AvaliacaoChefiaFinalizaForm, AvaliacaoChefiaForm,
-                          DeclaracaoNaoEnquadramentoVedacoesForm,
+                          DeclaracaoNaoEnquadramentoVedacoesForm, LotacaoForm,
                           ManifestacaoInteresseAprovadoChefiaForm,
                           ManifestacaoInteresseForm, PeriodoTeletrabalhoForm,
                           PeriodoTeletrabalhoFormSet, PlanoTrabalhoForm,
@@ -76,7 +76,7 @@ def manifestacao_interesse(request):
         return redirect(reverse('webapp:dados_cadastrais'))
 
     manifestacoes_servidor = ManifestacaoInteresse.objects.filter(
-        servidor=request.user)
+        lotacao__servidor__user=request.user)
 
     context = {
         'manifestacoes_servidor': manifestacoes_servidor,
@@ -86,10 +86,10 @@ def manifestacao_interesse(request):
 
 @login_required
 def manifestacao_interesse_create(request):
-    form = ManifestacaoInteresseForm(user=request.user)
+    form = LotacaoForm(user=request.user)
+    
     if request.method == 'POST':
-        form = ManifestacaoInteresseForm(request.POST, user=request.user)
-
+        form = LotacaoForm(request.POST, user=request.user)
         if form.is_valid():
             obj = form.save(commit=False)
             obj.servidor = request.user
@@ -1014,16 +1014,16 @@ def servidor(request):
     check_dados = servidor.check_dados()
     # verifica se existe Manifestacao de Interesse
     last_manifestacao_interesse = ManifestacaoInteresse.objects.filter(
-        servidor=request.user).last()
+        lotacao__servidor__user=request.user).last()
     # verifica se a Manifestação já foi aprovada pela chefia
     # verifica se existe Declaração de Não Enquadramento
     last_declaracao_nao_enquadramento = DeclaracaoNaoEnquadramentoVedacoes.objects.filter(
-        manifestacao__servidor=request.user)
+        manifestacao__lotacao__servidor__user=request.user)
     last_plano_trabalho = PlanoTrabalho.objects.filter(
-        manifestacao__servidor=request.user)
+        manifestacao__lotacao__servidor__user=request.user)
     # verifica se existe pendencia de autorização para teletrabalho das chefias
     autorizacoes_excecao_chefia = AutorizacoesExcecoes.objects.filter(
-        declaracao__manifestacao__servidor=request.user)
+        declaracao__manifestacao__lotacao__servidor__user=request.user)
 
     context = {
         'check_dados': check_dados,
