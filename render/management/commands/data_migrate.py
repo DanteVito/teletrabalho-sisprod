@@ -5,7 +5,7 @@ from contrib.data_migrate import (create_setores_postos_trabalho,
                                   create_unidades, create_users, migrate)
 from render.models import (ListaAtividades,
                            ListaIndicadoresMetricasTeletrabalho,
-                           ListaSistemasTeletrabalho, Unidade)
+                           ListaSistemasTeletrabalho, ModeloDocumento, Unidade)
 
 
 class Command(BaseCommand):
@@ -22,6 +22,22 @@ class Command(BaseCommand):
             except Group.DoesNotExist:
                 group = Group.objects.create(name=group_name)
                 print(f'[+] Grupo {group.name} criado.')
+
+        # modelos de documentos
+        _MODELOS = [
+            'MANIFESTACAO INTERESSE',
+        ]
+        for nome_modelo in _MODELOS:
+            try:
+                modelo = ModeloDocumento.objects.create(
+                    nome_modelo=nome_modelo
+                )
+                print(f'[+ modelo criado] {modelo.nome_modelo}')
+            except:
+                modelo = ModeloDocumento.objects.get(
+                    nome_modelo=nome_modelo
+                )
+                print(f'[modelo existente] {modelo.nome_modelo}')
 
         # unidades, setores, postos de trabalho
         create_unidades()

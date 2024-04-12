@@ -25,12 +25,13 @@ from render.forms import (AtividadeCumprimentoForm, AtividadesTeletrabalhoForm,
                           ProtocoloAutorizacaoTeletrabalhoForm, ServidorForm,
                           UserForm)
 from render.models import (AtividadesTeletrabalho, AutorizacoesExcecoes,
-                           AvaliacaoChefia, ComissaoInterna,
+                           AvaliacaoChefia, Chefia, ComissaoInterna,
                            ControleMensalTeletrabalho,
                            DeclaracaoNaoEnquadramentoVedacoes,
-                           DespachoCIGTPlanoTrabalho, ManifestacaoInteresse,
-                           ModeloDocumento, Numeracao, PeriodoTeletrabalho,
-                           PlanoTrabalho, PortariasPublicadasDOE,
+                           DespachoCIGTPlanoTrabalho, Lotacao,
+                           ManifestacaoInteresse, ModeloDocumento, Numeracao,
+                           PeriodoTeletrabalho, PlanoTrabalho,
+                           PortariasPublicadasDOE,
                            ProtocoloAutorizacaoTeletrabalho, Servidor)
 
 
@@ -53,7 +54,7 @@ def dados_cadastrais(request):
 
         if form.is_valid():
             form.save()
-            return redirect(reverse('webapp:servidor'))
+            return redirect(reverse('webapp:home'))
 
         for _, error_list in form.errors.items():
             for e in error_list:
@@ -76,7 +77,7 @@ def manifestacao_interesse(request):
         return redirect(reverse('webapp:dados_cadastrais'))
 
     manifestacoes_servidor = ManifestacaoInteresse.objects.filter(
-        lotacao__servidor__user=request.user)
+        lotacao_servidor__servidor__user=request.user)
 
     context = {
         'manifestacoes_servidor': manifestacoes_servidor,
@@ -86,18 +87,49 @@ def manifestacao_interesse(request):
 
 @login_required
 def manifestacao_interesse_create(request):
-    form = LotacaoForm(user=request.user)
-    
+    lotacao_servidor = Lotacao.objects.get(servidor__user=request.user)
+    manifestacoes = ManifestacaoInteresse.objects.filter(
+        lotacao_servidor=lotacao_servidor)
+    for m in manifestacoes:
+        if m.aprovado_chefia is None:
+            messages.info(
+                request, f"Não é possível cadastrar nova manifestação de interesse enquanto houver manifestação pendente de análise -> {m}!")
+            return redirect(reverse('webapp:manifestacao_interesse'))
+    form = LotacaoForm(user=request.user, instance=lotacao_servidor)
     if request.method == 'POST':
-        form = LotacaoForm(request.POST, user=request.user)
+        form = LotacaoForm(
+            request.POST, instance=lotacao_servidor, user=request.user)
         if form.is_valid():
-            obj = form.save(commit=False)
-            obj.servidor = request.user
-            obj.adicionado_por = request.user
-            obj.modificado_por = request.user
-            obj.modelo = ModeloDocumento.objects.get(
+            # escrever lógica que não altera a salva/altera a lotação do
+            # servidor se a chefia não estiver cadastrada
+            lotacao_servidor = form.save(commit=False)
+            chefia = Chefia.objects.filter(
+                posto_trabalho=lotacao_servidor.posto_trabalho).last()
+
+            if chefia:
+                posto_trabalho_chefia = chefia.posto_trabalho_chefia
+                lotacao_chefia = Lotacao.objects.filter(
+                    posto_trabalho=posto_trabalho_chefia).last()
+                if not lotacao_chefia:
+                    messages.info(
+                        request, f"Nenhum servidor cadastrado no posto de trabalho {posto_trabalho_chefia}!")
+                    return redirect(reverse('webapp:manifestacao_interesse'))
+                form.save()
+            else:
+                messages.info(
+                    request, "Chefia Imediata ainda não cadastrada na tabela Chefias!")
+                return redirect(reverse('webapp:manifestacao_interesse'))
+
+            manifestacao = ManifestacaoInteresse(
+                lotacao_servidor=lotacao_servidor,
+                lotacao_chefia=lotacao_chefia
+
+            )
+            manifestacao.adicionado_por = request.user
+            manifestacao.modificado_por = request.user
+            manifestacao.modelo = ModeloDocumento.objects.get(
                 nome_modelo='MANIFESTACAO INTERESSE')
-            obj.save()
+            manifestacao.save()
             messages.info(request, "Manifestação cadastrada com sucesso!")
             return redirect(reverse('webapp:manifestacao_interesse'))
 
@@ -117,22 +149,52 @@ def manifestacao_interesse_edit(request, pk):
     # editar a manifestação que ele cadastrou
     try:
         instance = ManifestacaoInteresse.objects.get(
-            pk=pk, servidor=request.user)
+            pk=pk, lotacao_servidor__servidor__user=request.user)
     except ManifestacaoInteresse.DoesNotExist:
         return HttpResponseBadRequest("")
 
-    form = ManifestacaoInteresseForm(instance=instance, user=request.user)
+    lotacao_servidor = Lotacao.objects.get(servidor__user=request.user)
+    form = LotacaoForm(user=request.user, instance=lotacao_servidor)
 
     if request.method == 'POST':
-        form = ManifestacaoInteresseForm(
-            request.POST, instance=instance, user=request.user)
+        form = LotacaoForm(
+            request.POST, instance=lotacao_servidor, user=request.user)
         if form.is_valid():
-            obj = form.save(commit=False)
-            obj.servidor = request.user
-            obj.modificado_por = request.user
-            obj.modelo = ModeloDocumento.objects.get(
-                nome_modelo='MANIFESTACAO INTERESSE')
-            obj.save()
+            # escrever lógica que não altera a salva/altera a lotação do
+            # servidor se a chefia não estiver cadastrada
+            lotacao_servidor = form.save()
+            chefia = Chefia.objects.filter(
+                posto_trabalho=lotacao_servidor.posto_trabalho).last()
+
+            if chefia:
+                posto_trabalho_chefia = chefia.posto_trabalho_chefia
+                lotacao_chefia = Lotacao.objects.filter(
+                    posto_trabalho=posto_trabalho_chefia).last()
+                if not lotacao_chefia:
+                    messages.info(
+                        request, f"Nenhum servidor cadastrado no posto de trabalho {posto_trabalho_chefia}!")
+                    return redirect(reverse('webapp:manifestacao_interesse'))
+            else:
+                messages.info(
+                    request, "Chefia Imediata ainda não cadastrada na tabela Chefias!")
+                return redirect(reverse('webapp:manifestacao_interesse'))
+
+            try:
+                ManifestacaoInteresse.objects.get(
+                    lotacao_servidor=lotacao_servidor,
+                    lotacao_chefia=lotacao_chefia
+                )
+
+            except ManifestacaoInteresse.DoesNotExist:
+                manifestacao = ManifestacaoInteresse(
+                    lotacao_servidor=lotacao_servidor,
+                    lotacao_chefia=lotacao_chefia
+                )
+                manifestacao.adicionado_por = request.user
+                manifestacao.modificado_por = request.user
+                manifestacao.modelo = ModeloDocumento.objects.get(
+                    nome_modelo='MANIFESTACAO INTERESSE')
+                manifestacao.save()
             messages.info(request, "Manifestação alterada com sucesso!")
             return redirect(reverse('webapp:manifestacao_interesse'))
 
@@ -148,18 +210,40 @@ def manifestacao_interesse_edit(request, pk):
 
 
 @login_required
+def manifestacao_interesse_delete(request, pk):
+    # garante que somente o proprio usuário possa
+    # excluir a manifestação que ele cadastrou
+    try:
+        instance = ManifestacaoInteresse.objects.get(
+            pk=pk, lotacao_servidor__servidor__user=request.user)
+    except ManifestacaoInteresse.DoesNotExist:
+        return HttpResponseBadRequest()
+
+    if instance.aprovado_chefia:
+        messages.warning(
+            request, "Não é possível deletar uma Manifestação de Interesse já aprovada/reprovada!")
+    else:
+        if instance.adicionado_por == request.user:
+            instance.delete()
+            messages.info(request, "Manifestação excluída com sucesso!")
+        else:
+            return HttpResponseBadRequest("")
+    return redirect(reverse('webapp:manifestacao_interesse'))
+
+
+@login_required
 def manifestacao_interesse_aprovado_chefia(request, pk):
     # garante que apenas o usuário registrado como chefia
     # imediata na manifestacação possa aprovar a manifestação
     try:
         manifestacao = ManifestacaoInteresse.objects.get(
-            pk=pk, chefia_imediata=request.user)
+            pk=pk, lotacao_chefia__servidor__user=request.user)
     except ManifestacaoInteresse.DoesNotExist:
         return HttpResponseBadRequest("proibido")
 
-    servidor = manifestacao.servidor
-    form_instance = ManifestacaoInteresseForm(
-        instance=manifestacao, user=servidor)
+    user = manifestacao.lotacao_servidor.servidor.user
+    form_instance_lotacao = LotacaoForm(
+        instance=manifestacao.lotacao_servidor, user=user)
 
     form = ManifestacaoInteresseAprovadoChefiaForm(
         instance=manifestacao)
@@ -180,31 +264,10 @@ def manifestacao_interesse_aprovado_chefia(request, pk):
     context = {
         'manifestacao': manifestacao,
         'form': form,
-        'form_instance': form_instance,
+        'form_instance_lotacao': form_instance_lotacao,
+        'chefia_imediata': manifestacao.lotacao_chefia.servidor,
     }
     return render(request, 'webapp/pages/manifestacao-interesse-aprovado-chefia.html', context)
-
-
-@login_required
-def manifestacao_interesse_delete(request, pk):
-    # garante que somente o proprio usuário possa
-    # excluir a manifestação que ele cadastrou
-    try:
-        instance = ManifestacaoInteresse.objects.get(
-            pk=pk, servidor=request.user)
-    except ManifestacaoInteresse.DoesNotExist:
-        return HttpResponseBadRequest()
-
-    if instance.aprovado_chefia:
-        messages.warning(
-            request, "Não é possível deletar uma Manifestação de Interesse já aprovada/reprovada!")
-    else:
-        if instance.adicionado_por == request.user:
-            instance.delete()
-            messages.info(request, "Manifestação excluída com sucesso!")
-        else:
-            return HttpResponseBadRequest("")
-    return redirect(reverse('webapp:manifestacao_interesse'))
 
 
 @login_required
@@ -1058,7 +1121,7 @@ def chefia_imediata(request):
 @login_required
 def chefia_imediata_analisar_manifestacoes(request):
     manifestacoes_subordinados = ManifestacaoInteresse.objects.filter(
-        chefia_imediata=request.user)
+        lotacao_chefia__servidor__user=request.user)
     context = {
         'manifestacoes_subordinados': manifestacoes_subordinados,
     }

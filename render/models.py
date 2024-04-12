@@ -149,13 +149,13 @@ class Lotacao(models.Model):
 
 
 class Chefia(models.Model):
-    setor = models.ForeignKey(
-        Setor, related_name="%(app_label)s_%(class)s_setor", on_delete=models.CASCADE)
-    chefia = models.ForeignKey(
-        Lotacao, related_name="%(app_label)s_%(class)s_chefia", on_delete=models.CASCADE)
+    posto_trabalho = models.ForeignKey(
+        PostosTrabalho, related_name="%(app_label)s_%(class)s_posto_trabalho", on_delete=models.CASCADE)
+    posto_trabalho_chefia = models.ForeignKey(
+        PostosTrabalho, related_name="%(app_label)s_%(class)s_posto_trabalho_chefia", on_delete=models.CASCADE)
 
     def __str__(self):
-        return f'{self.setor} : {self.chefia.servidor.user.nome}'
+        return f'{self.posto_trabalho} : chefia -> {self.posto_trabalho_chefia}'
 
     class Meta:
         verbose_name = 'Chefia'
@@ -168,7 +168,7 @@ class ModeloDocumento(models.Model):
     """
     nome_modelo = models.CharField(max_length=128)
     descricao_modelo = models.TextField(blank=True, null=True)
-    template_docx = models.FileField(upload_to='templates_docx/')
+    template_docx = models.FileField(upload_to='templates_docx/', null=True)
 
     def __str__(self):
         return self.nome_modelo
@@ -436,7 +436,8 @@ class ManifestacaoInteresse(BaseModelGeneral):
         ('aprovado', 'Aprovado'),
         ('reprovado', 'Reprovado'),
     )
-    lotacao = models.ForeignKey(Lotacao, related_name='%(app_label)s_%(class)s_lotacao', on_delete=models.CASCADE, null=True, blank=True)  # noqa E501
+    lotacao_servidor = models.ForeignKey(Lotacao, related_name='%(app_label)s_%(class)s_lotacao_servidor', on_delete=models.CASCADE, null=True, blank=True)  # noqa E501
+    lotacao_chefia = models.ForeignKey(Lotacao, related_name='%(app_label)s_%(class)s_lotacao_chefia', on_delete=models.CASCADE, null=True, blank=True)  # noqa E501)
     aprovado_chefia = models.CharField(
         choices=_APROVACAO, max_length=16, null=True, blank=True)
     justificativa_chefia = models.TextField()
@@ -491,12 +492,17 @@ class ManifestacaoInteresse(BaseModelGeneral):
 
     def get_context_docx(self):
         context = {
-            'unidade': self.unidade,
-            'setor': self.setor,
-            'servidor': self.servidor,
-            'funcao': self.funcao,
+            'unidade': self.lotacao_servidor.posto_trabalho.setor.unidade.nome,
+            'setor': self.lotacao_servidor.posto_trabalho.setor.nome,
+            'nome_servidor': self.lotacao_servidor.servidor.user.nome,
+            'rg': self.lotacao_servidor.servidor.user.rg,
+            'cargo': self.lotacao_servidor.servidor.cargo.nome,
+            'ramal': self.lotacao_servidor.servidor.ramal,
+            'celular': self.lotacao_servidor.servidor.celular,
+            'email': self.lotacao_servidor.servidor.email,
+            'posto_trabalho': self.lotacao_servidor.posto_trabalho,
+            'cidade': self.lotacao_servidor.servidor.cidade,
             'data': self.get_date(),
-            'posto_trabalho': self.posto_trabalho,
         }
         return context
 
@@ -2119,25 +2125,25 @@ for model in _TEMPLATES:
 #         ModelChangeLogsModel.objects.create(**data)
 
 
-@receiver(pre_save, sender=ManifestacaoInteresse, weak=False)
-def altera_chefia_callback(sender, **kwargs):
-    """
-    Função criada para usar o Django Signals para
-    atribuir automaticamente o grupo CHEFIAS para o usuário
-    que for selecionado em chefia_imediata de um formulário
-    do servidor quando o formulário é editado - 
-    modelo ManifestacaoInteresse
-    """
+# @receiver(pre_save, sender=ManifestacaoInteresse, weak=False)
+# def altera_chefia_callback(sender, **kwargs):
+#     """
+#     Função criada para usar o Django Signals para
+#     atribuir automaticamente o grupo CHEFIAS para o usuário
+#     que for selecionado em chefia_imediata de um formulário
+#     do servidor quando o formulário é editado -
+#     modelo ManifestacaoInteresse
+#     """
 
-    instance = kwargs['instance']
-    try:
-        old_chefia_imediata = ManifestacaoInteresse.objects.get(
-            id=instance.id).chefia_imediata
-        if len(ManifestacaoInteresse.objects.filter(chefia_imediata=old_chefia_imediata)) < 2:
-            chefias = Group.objects.get(name='CHEFIAS')
-            chefias.user_set.remove(old_chefia_imediata)
-    except ManifestacaoInteresse.DoesNotExist:
-        pass
+#     instance = kwargs['instance']
+#     try:
+#         old_chefia_imediata = ManifestacaoInteresse.objects.get(
+#             id=instance.id).chefia_imediata
+#         if len(ManifestacaoInteresse.objects.filter(chefia_imediata=old_chefia_imediata)) < 2:
+#             chefias = Group.objects.get(name='CHEFIAS')
+#             chefias.user_set.remove(old_chefia_imediata)
+#     except ManifestacaoInteresse.DoesNotExist:
+#         pass
 
 
 @receiver(pre_delete, sender=ManifestacaoInteresse, weak=False)
@@ -2150,11 +2156,11 @@ def deleta_chefia_callback(sender, **kwargs):
     """
 
     instance = kwargs['instance']
-    old_chefia_imediata = ManifestacaoInteresse.objects.get(
-        id=instance.id).chefia_imediata
-    if len(ManifestacaoInteresse.objects.filter(chefia_imediata=old_chefia_imediata)) < 2:
+    lotacao_chefia = ManifestacaoInteresse.objects.get(
+        id=instance.id).lotacao_chefia
+    if len(ManifestacaoInteresse.objects.filter(lotacao_chefia=lotacao_chefia)) < 2:
         chefias = Group.objects.get(name='CHEFIAS')
-        chefias.user_set.remove(old_chefia_imediata)
+        chefias.user_set.remove(lotacao_chefia.servidor.user)
 
 
 @receiver(post_save, sender=ManifestacaoInteresse, weak=False)
@@ -2167,7 +2173,7 @@ def adiciona_chefia_callback(sender, **kwargs):
     """
 
     instance = kwargs['instance']
-    chefia_imediata = instance.chefia_imediata
+    chefia_imediata = instance.lotacao_chefia.servidor.user
     chefias = Group.objects.get(name='CHEFIAS')
     chefias.user_set.add(chefia_imediata)
 

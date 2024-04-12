@@ -16,7 +16,6 @@
                 <th>Unidade</th>
                 <th>Setor</th>
                 <th>Servidor</th>
-                <th>Função</th>
                 <th>Posto de Trabalho</th>
                 <th>Analisar</th>
             </tr>
@@ -25,11 +24,10 @@
             {% for manifestacao in manifestacoes_subordinados %}
                 <tr>
                     <td><a href={% url "webapp:download_docx" "manifestacao" manifestacao.id %}>{{ manifestacao.id }}</a></td>
-                    <td>{{ manifestacao.unidade }}</td>
-                    <td>{{ manifestacao.setor }}</td>
-                    <td>{{ manifestacao.servidor }}</td>
-                    <td>{{ manifestacao.funcao }}</td>
-                    <td>{{ manifestacao.posto_trabalho }}</td>
+                    <td>{{ manifestacao.lotacao_servidor.posto_trabalho.setor.unidade }}</td>
+                    <td>{{ manifestacao.lotacao_servidor.posto_trabalho.setor.nome }}</td>
+                    <td>{{ manifestacao.lotacao_servidor.servidor.user.nome }}</td>
+                    <td>{{ manifestacao.lotacao_servidor.posto_trabalho.posto }}</td>
                     <td>{% if manifestacao.aprovado_chefia == 'aprovado' %}ACEITA{% elif manifestacao.aprovado_chefia == 'reprovado' %}NÃO ACEITA{% else %}<a href={% url 'webapp:manifestacao_interesse_aprovado_chefia' manifestacao.pk %}>ANALISAR</a>{% endif %}</td>
                 </tr>
             {% endfor %}

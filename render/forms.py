@@ -90,7 +90,7 @@ class ManifestacaoInteresseForm(ModelForm):
         lotacao = Lotacao.objects.get(servidor__user__id=self.user.id)
         super(ManifestacaoInteresseForm, self).__init__(*args, **kwargs)
 
-        self.fields['lotacao'] = forms.ModelChoiceField(
+        self.fields['lotacao_servidor'] = forms.ModelChoiceField(
             queryset=Servidor.objects.filter(id=lotacao.id),
             initial=Servidor.objects.filter(
                 id=lotacao.id).first(),
@@ -100,7 +100,7 @@ class ManifestacaoInteresseForm(ModelForm):
     class Meta:
         model = ManifestacaoInteresse
         fields = (
-            'lotacao',
+            'lotacao_servidor',
         )
         # widgets = {
         #     'funcao': forms.TextInput(attrs={'class': 'input'}),

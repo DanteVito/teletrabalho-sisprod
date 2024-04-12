@@ -53,16 +53,27 @@ def create_setores_postos_trabalho(file='contrib/data/postos_de_trabalho.txt') -
             }
             setor, _ = Setor.objects.update_or_create(**data_setor)
 
-            posto_trabalho = data_line[1]
-            tipo_posto_trabalho = data_line[2]
+            posto_trabalho = data_line[1].strip()
+            tipo_posto_trabalho = data_line[2].strip()
+            chefia = data_line[3].strip()
+
+            if chefia == 'CHEFIA':
+                chefia = True
+            else:
+                chefia = False
 
             data_posto_trabalho = {
                 'setor': setor,
                 'posto': posto_trabalho,
                 'tipo': tipo_posto_trabalho,
+                'chefia': chefia,
             }
 
-            PostosTrabalho.objects.update_or_create(**data_posto_trabalho)
+            posto_trabalho, posto_trabalho_created = PostosTrabalho.objects.update_or_create(
+                **data_posto_trabalho)
+
+            if posto_trabalho_created:
+                print(f'[criado posto de trabalho] {posto_trabalho}')
 
 
 def create_users(file: str) -> None:

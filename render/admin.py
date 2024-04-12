@@ -120,9 +120,9 @@ def publica_doe(modeladmin, request, queryset):
 
 
 class ManifestacaoInteresseAdmin(admin.ModelAdmin):
-    list_display = ('lotacao', 'data_criacao', 'aprovado_chefia', 'adicionado_por', 'modificado_por')  # noqa E501
+    list_display = ('lotacao_servidor', 'data_criacao', 'aprovado_chefia', 'adicionado_por', 'modificado_por')  # noqa E501
     actions = (generate_docx,)
-    fields = ('lotacao', 'aprovado_chefia')
+    fields = ('lotacao_servidor', 'aprovado_chefia')
     # autocomplete_fields = (
     #     'unidade', 'setor', 'posto_trabalho', 'posto_trabalho_chefia')
 
