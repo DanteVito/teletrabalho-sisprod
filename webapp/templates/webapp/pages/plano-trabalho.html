@@ -25,7 +25,7 @@
             {% for plano_trabalho in planos_trabalho %}
                 <tr>
                     <td><a href={% url "webapp:download_docx" "plano-trabalho" plano_trabalho.id %}>{{ plano_trabalho.id }}</a></td>
-                    <td>{{ plano_trabalho.manifestacao.servidor }}</td>
+                    <td>{{ plano_trabalho.manifestacao.lotacao_servidor.servidor }}</td>
                     <td>{% if plano_trabalho.aprovado_chefia == 'aprovado' %}SIM{% elif plano_trabalho.aprovado_chefia == 'reprovado' %}NÃO{% else %}PENDENTE{% endif %}</td>
                     <td>{% if plano_trabalho.aprovado_cigt == 'aprovado' %}SIM{% elif plano_trabalho.aprovado_cigt == 'reprovado' %}NÃO{% else %}PENDENTE{% endif %}</td>
                     <td><a href="{% url 'webapp:plano_trabalho_edit' plano_trabalho.pk %}">{% if plano_trabalho.aprovado_chefia%}[X]{% else %}editar{% endif %}</a></td>

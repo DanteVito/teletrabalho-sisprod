@@ -23,7 +23,6 @@
             <th>Unidade</th>
             <th>Setor</th>
             <th>Servidor</th>
-            <th>Função</th>
             <th>Posto de Trabalho</th>
         </tr>
     </thead>
@@ -34,18 +33,17 @@
                     <td>{{ avaliacao.id }}</td>
                     <td>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}</td>
                     <td>{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }}</td>
-                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.unidade }}</td>
-                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.setor }}</td>
-                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.servidor }}</td>
-                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.funcao }}</td>
-                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.posto_trabalho }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho.setor.unidade }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho.setor.nome }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho }}</td>
                 </tr>
             {% endif %}
         {% endfor %}
     </tbody>
 </table>
 
-<h3 class="title is-4">Avaliações Realizadas</h3>
+<h3 class="title is-4">Avaliações Realizadas - Cumprimento Integral</h3>
 
 <table class="table is-striped is-hoverable">
     <thead>
@@ -56,22 +54,82 @@
             <th>Unidade</th>
             <th>Setor</th>
             <th>Servidor</th>
-            <th>Função</th>
             <th>Posto de Trabalho</th>
         </tr>
     </thead>
     <tbody>
         {% for avaliacao in avaliacoes %}
-            {% if avaliacao.atestado_cumprimento_metas %}
+            {% if avaliacao.atestado_cumprimento_metas == '1' %}
                 <tr>
                     <td><a href={% url "webapp:avaliacao_atividades_list" avaliacao.pk %}>{{ avaliacao.id }}</a></td>
                     <td>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}</td>
                     <td>{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }}</td>
-                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.unidade }}</td>
-                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.setor }}</td>
-                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.servidor }}</td>
-                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.funcao }}</td>
-                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.posto_trabalho }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho.setor.unidade }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho.setor.nome }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho }}</td>
+                </tr>
+            {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
+
+<h3 class="title is-4">Avaliações Realizadas - Cumprimento Parcial</h3>
+
+<table class="table is-striped is-hoverable">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Ano</th>
+            <th>Mês</th>
+            <th>Unidade</th>
+            <th>Setor</th>
+            <th>Servidor</th>
+            <th>Posto de Trabalho</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for avaliacao in avaliacoes %}
+            {% if avaliacao.atestado_cumprimento_metas == '2' %}
+                <tr>
+                    <td><a href={% url "webapp:avaliacao_atividades_list" avaliacao.pk %}>{{ avaliacao.id }}</a></td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho.setor.unidade }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho.setor.nome }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho }}</td>
+                </tr>
+            {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
+
+<h3 class="title is-4">Avaliações Realizadas - Não Cumprimento</h3>
+
+<table class="table is-striped is-hoverable">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Ano</th>
+            <th>Mês</th>
+            <th>Unidade</th>
+            <th>Setor</th>
+            <th>Servidor</th>
+            <th>Posto de Trabalho</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for avaliacao in avaliacoes %}
+            {% if avaliacao.atestado_cumprimento_metas == '3' %}
+                <tr>
+                    <td><a href={% url "webapp:avaliacao_atividades_list" avaliacao.pk %}>{{ avaliacao.id }}</a></td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho.setor.unidade }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho.setor.nome }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho }}</td>
                 </tr>
             {% endif %}
         {% endfor %}

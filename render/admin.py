@@ -12,9 +12,9 @@ from unidecode import unidecode
 
 from authentication.models import User
 
-from .models import (FGT, AtividadesTeletrabalho, AutorizacoesExcecoes,
-                     AvaliacaoChefia, Cargo, Chefia, ComissaoInterna,
-                     ControleMensalTeletrabalho,
+from .models import (FGT, AlterarAvaliacaoChefia, AtividadesTeletrabalho,
+                     AutorizacoesExcecoes, AvaliacaoChefia, Cargo, Chefia,
+                     ComissaoInterna, ControleMensalTeletrabalho,
                      DeclaracaoNaoEnquadramentoVedacoes,
                      DespachoArquivamentoManifestacaoCIGT,
                      DespachoCIGTPlanoTrabalho, DespachoEncaminhaAvaliacao,
@@ -925,3 +925,4 @@ admin.site.register(Servidor)
 admin.site.register(Lotacao)
 admin.site.register(Cargo)
 admin.site.register(Chefia)
+admin.site.register(AlterarAvaliacaoChefia)

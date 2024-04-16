@@ -112,6 +112,8 @@ urlpatterns = [
          name='avaliacao_chefia_atividade'),
     path('avaliacao-chefia-atividade/finalizar/<int:pk>', views.finalizar_avaliacao,
          name='finalizar_avaliacao'),
+    path('avaliacao-chefia-alterar/<int:pk>', views.chefia_imediata_alterar_avaliacao_mensal,
+         name='chefia_imediata_alterar_avaliacao_mensal'),
     # gabinete
     path('gabinete/', views.gabinete, name='gabinete'),
     # download arquivos

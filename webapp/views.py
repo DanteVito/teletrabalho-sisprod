@@ -9,7 +9,8 @@ from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
-from render.forms import (AtividadeCumprimentoForm, AtividadesTeletrabalhoForm,
+from render.forms import (AlterarAvaliacaoChefiaForm, AtividadeCumprimentoForm,
+                          AtividadesTeletrabalhoForm,
                           AtividadesTeletrabalhoFormSet,
                           AutorizacoesExcecoesAprovaForm,
                           AutorizacoesExcecoesForm,
@@ -100,12 +101,11 @@ def manifestacao_interesse_create(request):
         form = LotacaoForm(
             request.POST, instance=lotacao_servidor, user=request.user)
         if form.is_valid():
-            # escrever lógica que não altera a salva/altera a lotação do
-            # servidor se a chefia não estiver cadastrada
+            # verifica se já existe manifestação aprovada para aquele posto de trabalho e chefia imediata
+            posto_trabalho_form = form.cleaned_data['posto_trabalho']
             lotacao_servidor = form.save(commit=False)
             chefia = Chefia.objects.filter(
                 posto_trabalho=lotacao_servidor.posto_trabalho).last()
-
             if chefia:
                 posto_trabalho_chefia = chefia.posto_trabalho_chefia
                 lotacao_chefia = Lotacao.objects.filter(
@@ -114,6 +114,13 @@ def manifestacao_interesse_create(request):
                     messages.info(
                         request, f"Nenhum servidor cadastrado no posto de trabalho {posto_trabalho_chefia}!")
                     return redirect(reverse('webapp:manifestacao_interesse'))
+                if posto_trabalho_form == lotacao_servidor.posto_trabalho:
+                    for m in manifestacoes.filter(aprovado_chefia='aprovado'):
+                        if m.lotacao_chefia == lotacao_chefia:
+                            messages.info(
+                                request, f"Já existe manifestação de interesse aprovada pela chefia: {lotacao_chefia.servidor}."
+                            )
+                            return redirect(reverse('webapp:manifestacao_interesse'))
                 form.save()
             else:
                 messages.info(
@@ -277,7 +284,7 @@ def declaracao_nao_enquadramento(request):
     if check_dados:
         return redirect(reverse('webapp:dados_cadastrais'))
     declaracoes = DeclaracaoNaoEnquadramentoVedacoes.objects.filter(
-        manifestacao__servidor=request.user)
+        manifestacao__lotacao_servidor__servidor=servidor)
     autorizacoes_excecoes = AutorizacoesExcecoes.objects.filter(
         declaracao__in=declaracoes)
     pk_autorizacoes_excecoes = set([a.pk for a in autorizacoes_excecoes])
@@ -312,21 +319,30 @@ def declaracao_nao_enquadramento_create(request):
             manifestacao = form.cleaned_data['manifestacao']
             # garante que apenas manifestações de interesse do próprio
             # usuário possam ser utilizadas
-            if not manifestacao in ManifestacaoInteresse.objects.filter(servidor=request.user):
+            if not manifestacao in ManifestacaoInteresse.objects.filter(lotacao_servidor__servidor__user=request.user):
                 return HttpResponseBadRequest("not allowed")
+
             obj.adicionado_por = request.user
             obj.modificado_por = request.user
             modelo_aprovacao_excecao = ModeloDocumento.objects.get(nome_modelo="APROVACAO EXCECAO DIRETOR")  # noqa E501
             modelo_declaracao = ModeloDocumento.objects.get(
                 nome_modelo='DECLARACAO NAO ENQUADRAMENTO VEDACOES')
             obj.modelo = modelo_declaracao
-            obj.save()
 
-            if not obj.cargo_chefia_direcao:
+            lotacao_servidor = Lotacao.objects.filter(
+                servidor__user=request.user).last()
+
+            if not obj.cargo_chefia_direcao or lotacao_servidor.posto_trabalho.chefia:
+                if not obj.justificativa_excecao:
+                    messages.info(
+                        request, "É necessário preencher a justificativa para exceção de teletrabalho das chefias!")
+                    return redirect(reverse('webapp:declaracao_nao_enquadramento_create'))
+                obj.save()
                 if not AutorizacoesExcecoes.objects.filter(declaracao=obj):
                     AutorizacoesExcecoes.objects.create(
                         declaracao=obj, modelo=modelo_aprovacao_excecao)
-
+            else:
+                obj.save()
             messages.info(request, "Declaração cadastrada com sucesso!")
             return redirect(reverse('webapp:declaracao_nao_enquadramento'))
 
@@ -412,18 +428,18 @@ def plano_trabalho(request):
     if check_dados:
         return redirect(reverse('webapp:dados_cadastrais'))
     if not ManifestacaoInteresse.objects.filter(
-            servidor=request.user):
+            lotacao_servidor__servidor__user=request.user):
         messages.info(
             request, "É necessário cadastrar a Manifestação de Interesse antes de cadastrar o Plano de Trabalho!")
         return redirect(reverse('webapp:manifestacao_interesse'))
     if not DeclaracaoNaoEnquadramentoVedacoes.objects.filter(
-            manifestacao__servidor=request.user):
+            manifestacao__lotacao_servidor__servidor__user=request.user):
         messages.info(
             request, "É necessário cadastrar a Declaração de Não Enquadramento nas Vedações Legais antes de cadastrar o Plano de Trabalho!")
         return redirect(reverse('webapp:declaracao_nao_enquadramento'))
 
     planos_trabalho = PlanoTrabalho.objects.filter(
-        manifestacao__servidor=request.user)
+        manifestacao__lotacao_servidor__servidor__user=request.user)
     context = {
         'planos_trabalho': planos_trabalho
     }
@@ -437,7 +453,7 @@ def plano_trabalho_create(request):
     # assim como a sua chefia imediata
 
     last_manifestacao = ManifestacaoInteresse.objects.filter(
-        servidor=request.user).last()
+        lotacao_servidor__servidor__user=request.user).last()
     if not last_manifestacao.aprovado_chefia:
         messages.info(
             request, "É necessário ter a Manifestação de Interesse aprovada antes de cadastrar o Plano de Trabalho!")
@@ -458,10 +474,8 @@ def plano_trabalho_create(request):
     atividades_formset = AtividadesTeletrabalhoFormSet()
     if request.method == 'POST':
         form = PlanoTrabalhoForm(request.POST, user=request.user)
-
         if form.is_valid():
             obj = form.save(commit=False)
-            obj.servidor = request.user
             obj.adicionado_por = request.user
             obj.modificado_por = request.user
             obj.modelo = ModeloDocumento.objects.get(
@@ -593,12 +607,12 @@ def plano_trabalho_aprovado_chefia(request, pk):
     # imediata na manifestacação possa aprovar o plano de trabalho
     try:
         plano_trabalho = PlanoTrabalho.objects.get(
-            pk=pk, manifestacao__chefia_imediata=request.user)
+            pk=pk, manifestacao__lotacao_chefia__servidor__user=request.user)
     except PlanoTrabalho.DoesNotExist:
         return HttpResponseBadRequest("proibido")
 
     form_instance = PlanoTrabalhoForm(
-        instance=plano_trabalho, user=plano_trabalho.manifestacao.servidor)
+        instance=plano_trabalho, user=plano_trabalho.manifestacao.lotacao_servidor.servidor.user)
     form = PlanoTrabalhoFormAprovadoChefiaForm(instance=plano_trabalho)
     if request.method == 'POST':
         form = PlanoTrabalhoFormAprovadoChefiaForm(
@@ -862,7 +876,10 @@ def autorizacao_excecao_edit(request, pk):
                 request.POST, instance=autorizacao)
 
             if form.is_valid():
-                form.save()
+                obj = form.save(commit=False)
+                obj.modificado_por = request.user
+                obj.save()
+
                 return redirect(reverse('webapp:autorizacoes_excecoes'))
 
         for _, error_list in form.errors.items():
@@ -1103,11 +1120,11 @@ def servidor(request):
 def chefia_imediata(request):
     if request.user.groups.filter(name='CHEFIAS'):
         manifestacoes_servidor = ManifestacaoInteresse.objects.filter(
-            servidor=request.user)
+            lotacao_servidor__servidor__user=request.user)
         manifestacoes_subordinados = ManifestacaoInteresse.objects.filter(
-            chefia_imediata=request.user)
+            lotacao_chefia__servidor__user=request.user)
         planos_trabalho_subordinados = PlanoTrabalho.objects.filter(
-            manifestacao__chefia_imediata=request.user)
+            manifestacao__lotacao_chefia__servidor__user=request.user)
         context = {
 
             'manifestacoes_servidor': manifestacoes_servidor,
@@ -1131,7 +1148,7 @@ def chefia_imediata_analisar_manifestacoes(request):
 @login_required
 def chefia_imediata_analisar_planos_trabalho(request):
     planos_trabalho = PlanoTrabalho.objects.filter(
-        manifestacao__chefia_imediata=request.user)
+        manifestacao__lotacao_chefia__servidor__user=request.user)
     context = {
         'planos_trabalho': planos_trabalho,
     }
@@ -1142,7 +1159,7 @@ def chefia_imediata_analisar_planos_trabalho(request):
 def chefia_imediata_realizar_avaliacoes_mensais(request):
     if request.user.groups.filter(name='CHEFIAS'):
         pareceres_cigt = DespachoCIGTPlanoTrabalho.objects.filter(
-            plano_trabalho__manifestacao__chefia_imediata=request.user)
+            plano_trabalho__manifestacao__lotacao_chefia__servidor__user=request.user)
         avaliacoes_chefia = AvaliacaoChefia.objects.filter(
             encaminhamento_avaliacao_cigt__despacho_cigt__in=pareceres_cigt)
         context = {
@@ -1173,7 +1190,7 @@ def avaliacao_atividades_list(request, pk):
     if request.user.groups.filter(name='CHEFIAS') or request.user.groups.filter(name='CIGT'):
         avaliacao = AvaliacaoChefia.objects.get(pk=pk)
         pareceres_cigt = DespachoCIGTPlanoTrabalho.objects.filter(
-            plano_trabalho__manifestacao__chefia_imediata=request.user)
+            plano_trabalho__manifestacao__lotacao_chefia__servidor__user=request.user)
         avaliacoes_chefia = AvaliacaoChefia.objects.filter(
             encaminhamento_avaliacao_cigt__despacho_cigt__in=pareceres_cigt)
         # garante que apenas a chefia imediata apontada na manifestação de
@@ -1216,6 +1233,14 @@ def avaliacao_atividades_list(request, pk):
 
                 if form.is_valid():
                     for atividade, cumprimento in zip(atividades_para_avaliacao, request.POST.getlist('cumprimento')):
+                        if atividade.cumprimento:
+                            if atividade.cumprimento != cumprimento:
+                                messages.info(
+                                    request, f"É necessário justificativa para alterar: {atividade.cumprimento} -> {cumprimento}")
+                                request.session['atividade_pk'] = atividade.pk
+                                request.session['novo_cumprimento'] = cumprimento
+                                return redirect(reverse('webapp:chefia_imediata_alterar_avaliacao_mensal', kwargs={'pk': avaliacao.pk}))
+
                         atividade.cumprimento = cumprimento
                         atividade.save()
                     form.save()
@@ -1234,6 +1259,32 @@ def avaliacao_atividades_list(request, pk):
         }
 
         return render(request, 'webapp/pages/avaliacao-chefia-atividades-list.html', context)
+
+
+@login_required
+def chefia_imediata_alterar_avaliacao_mensal(request, pk):
+    avaliacao = AvaliacaoChefia.objects.get(pk=pk)
+    atividade_pk = request.session.get('atividade_pk')
+    atividade = AtividadesTeletrabalho.objects.get(pk=atividade_pk)
+    form = AlterarAvaliacaoChefiaForm(avaliacao=avaliacao)
+
+    if request.method == 'POST':
+        form = AlterarAvaliacaoChefiaForm(request.POST, avaliacao=avaliacao)
+        if form.is_valid():
+            novo_cumprimento = request.session.get('novo_cumprimento')
+            atividade.cumprimento = novo_cumprimento
+            atividade.save()
+            obj = form.save(commit=False)
+            obj.adicionado_por = request.user
+            obj.save()
+            return redirect(reverse('webapp:avaliacao_atividades_list', kwargs={'pk': pk}))
+
+    context = {
+        'form': form,
+        'avaliacao': avaliacao,
+        'atividade': atividade,
+    }
+    return render(request, 'webapp/pages/chefia-imediata-alterar-avaliacao-form.html', context)
 
 
 @login_required

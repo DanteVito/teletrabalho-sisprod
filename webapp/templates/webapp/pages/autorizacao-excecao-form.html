@@ -13,7 +13,11 @@
     </div>
 </div>
 
-{{ declaracao }}
+<h4 class="title is-4">Justificativa:</h4>
+
+<p>{{ declaracao.justificativa_excecao}}</p>
+
+<br>
 
 {% comment %} unidade = models.ForeignKey(Unidade, related_name='%(app_label)s_%(class)s_unidade', on_delete=models.CASCADE, null=True)  # noqa E501
 setor = models.ForeignKey(Setor, related_name='%(app_label)s_%(class)s_setor', on_delete=models.CASCADE)  # noqa E501

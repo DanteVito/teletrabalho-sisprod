@@ -220,22 +220,33 @@ class BaseModelMethods(models.Model):
         """
         Método para gerar nome do arquivo .docx ou .pdf
         """
+        #
+        # REESCREVER METODO PARA GERAR NOMES
+        #
         if file_type not in ('docx', 'pdf'):
             raise Exception('file_type accepts only "docx" and "pdf"')
 
-        if hasattr(self, 'servidor'):
-            nome_resumido = str(self.servidor)
+        if hasattr(self, 'lotacao_servidor'):
+            nome_resumido = str(self.lotacao_servidor.servidor)
         elif hasattr(self, 'despacho_cigt'):
             nome_resumido = str(
-                self.despacho_cigt.plano_trabalho.manifestacao.servidor)
+                self.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor)
         else:
             nome_resumido = 'CIGT'
 
         if hasattr(self, 'numeracao'):
             base_name = f'{tipo_doc} {self.numeracao} {nome_resumido}'  # noqa E501
+        elif hasattr(self, 'id'):
+            base_name = f'{tipo_doc}_id_{self.id} {nome_resumido}'  # noqa E501
         else:
             base_name = f'{tipo_doc} {nome_resumido}'  # noqa E501
         base_name = base_name.replace(' ', '_')
+
+        if tipo_doc == 'declaracao_nao_enquadramento_vedacoes':
+            base_name = f'{tipo_doc}_id_{self.id} {self.manifestacao.lotacao_servidor.servidor}'  # noqa E501
+
+        if tipo_doc == 'plano_trabalho':
+            base_name = f'{tipo_doc}_id_{self.id} {self.manifestacao.lotacao_servidor.servidor}'  # noqa E501
 
         if tipo_doc == 'portaria_teletrabalho_doe':
             base_name = f'{tipo_doc}_{date.today()}_id_{self.id}'
@@ -550,7 +561,8 @@ class DeclaracaoNaoEnquadramentoVedacoes(BaseModelGeneral):
     def get_context_docx(self):
         context = {
             'data': self.get_date(),
-            'servidor': self.manifestacao.servidor,
+            'servidor': self.manifestacao.lotacao_servidor.servidor.user.nome,
+            'cidade': self.manifestacao.lotacao_servidor.servidor.cidade,
             'estagio_probatorio': self.estagio_probatorio,
             'cargo_chefia_direcao': self.cargo_chefia_direcao,
             'penalidade_disciplinar': self.penalidade_disciplinar,
@@ -558,7 +570,7 @@ class DeclaracaoNaoEnquadramentoVedacoes(BaseModelGeneral):
         return context
 
     def __str__(self):
-        return f'Declaração Não Enquadramento Vedações: {self.manifestacao.servidor}'
+        return f'Declaração Não Enquadramento Vedações: {self.manifestacao.lotacao_servidor.servidor.user.nome}'
 
     class Meta:
         verbose_name = 'Declaração Não Enquadramento Vedações'
@@ -593,8 +605,9 @@ class AutorizacoesExcecoes(BaseModelMethods):
     def get_context_docx(self):
         context = {
             'data': self.get_date(),
-            'declaracao': self.declaracao,
+            'servidor': self.declaracao.manifestacao.lotacao_servidor.servidor.user.nome,
             'modificado_por': self.modificado_por,
+            'cargo_autorizador': Lotacao.objects.filter(servidor__user=self.modificado_por).last().posto_trabalho.posto
         }
         return context
 
@@ -629,7 +642,7 @@ class PlanoTrabalho(BaseModelGeneral):
 
         try:
             declaracao = DeclaracaoNaoEnquadramentoVedacoes.objects.filter(
-                manifestacao__servidor=self.manifestacao.servidor).last()
+                manifestacao__lotacao_servidor=self.manifestacao.lotacao_servidor).last()
             if not declaracao.estagio_probatorio or not declaracao.penalidade_disciplinar:
                 raise ValidationError(
                     "Não é possível elaborar Plano de Trabalho para Servidor que se enquadra nas vedações legais")
@@ -740,24 +753,22 @@ class PlanoTrabalho(BaseModelGeneral):
     def get_context_docx(self):
         context = {
             'data': self.get_date(),
-            'unidade': self.manifestacao.unidade,
-            'setor': self.manifestacao.setor,
-            'servidor': self.manifestacao.servidor,
-            'funcao': self.manifestacao.funcao,
-            'posto_trabalho': self.manifestacao.posto_trabalho,
-            'chefia_imediata': self.manifestacao.chefia_imediata,
-            'funcao_chefia': self.manifestacao.funcao_chefia,
-            'posto_trabalho_chefia': self.manifestacao.posto_trabalho_chefia,
+            'unidade': self.manifestacao.lotacao_servidor.posto_trabalho.setor.unidade,
+            'setor': self.manifestacao.lotacao_servidor.posto_trabalho.setor,
+            'servidor': self.manifestacao.lotacao_servidor.servidor,
+            'servidor_rg': self.manifestacao.lotacao_servidor.servidor.user.rg_format(),
+            'posto_trabalho': self.manifestacao.lotacao_servidor.posto_trabalho,
+            'chefia_imediata': self.manifestacao.lotacao_chefia.servidor,
+            'posto_trabalho_chefia': self.manifestacao.lotacao_chefia.posto_trabalho,
             'periodos_teletrabalho': self.get_periodos_teletrabalho(),
             'periodo_comparecimento': self.periodo_comparecimento,
             'periodo_acionamento': self.periodo_acionamento,
             'atividades': self.get_atividades_plano_trabalho(),
-
         }
         return context
 
     def __str__(self):
-        return f'Plano de Trabalho: {self.manifestacao.servidor}'
+        return f'Plano de Trabalho: {self.manifestacao.lotacao_servidor.servidor}'
 
     class Meta:
         verbose_name = 'Plano de Trabalho'
@@ -921,6 +932,11 @@ class AtividadesTeletrabalho(models.Model):
 
     def __str__(self):
         return self.atividade.atividade
+
+    def get_cumprimento(self) -> str:
+        for c in self._CHOICES:
+            if c[0] == self.cumprimento:
+                return c[1]
 
     def get_avaliacao_chefia(self):
         """
@@ -1111,7 +1127,7 @@ class DespachoCIGTPlanoTrabalho(DespachoCIGTAbstract):
             raise ValueError('field != "rg" ou "sid"')
 
         # remove puntuação
-        no_punctuation_field = getattr(self.plano_trabalho.manifestacao.servidor, field).translate(
+        no_punctuation_field = getattr(self.plano_trabalho.manifestacao.lotacao_servidor.servidor, field).translate(
             str.maketrans('', '', string.punctuation))
         # converte para int e depois para str
         numeric = int(no_punctuation_field)
@@ -1165,10 +1181,10 @@ class DespachoCIGTPlanoTrabalho(DespachoCIGTAbstract):
             'ano': self.ano,
             'numeracao': self.numeracao,
             'data': self.get_date(),
-            'setor': self.plano_trabalho.manifestacao.setor,
-            'pessoa': self.plano_trabalho.manifestacao.servidor,
-            'rg': self.plano_trabalho.manifestacao.servidor.rg,
-            'posto_trabalho': self.plano_trabalho.manifestacao.posto_trabalho,
+            'setor': self.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho.setor,
+            'pessoa': self.plano_trabalho.manifestacao.lotacao_servidor.servidor,
+            'rg': self.plano_trabalho.manifestacao.lotacao_servidor.servidor.user.rg,
+            'posto_trabalho': self.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho,
             'periodos_teletrabalho': self.get_periodos_teletrabalho(),
             'deferido': self.deferido,
             'periodo_teletrabalho': self.get_periodos_teletrabalho(),
@@ -1180,7 +1196,7 @@ class DespachoCIGTPlanoTrabalho(DespachoCIGTAbstract):
         return context
 
     def __str__(self) -> str:
-        return f"Parecer CIGT n.{self.numeracao}-{self.ano}-{self.plano_trabalho.manifestacao.servidor}"
+        return f"Parecer CIGT n.{self.numeracao}-{self.ano}-{self.plano_trabalho.manifestacao.lotacao_servidor.servidor}"
 
     class Meta:
         ordering = ('id', )
@@ -1204,7 +1220,7 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
         max_length=16, choices=_CHOICES, blank=True, null=True)
 
     def __str__(self) -> str:
-        return f"Protocolo Autorização | Teletrabalho | {self.despacho_cigt.plano_trabalho.manifestacao.servidor.nome}"
+        return f"Protocolo Autorização | Teletrabalho | {self.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor}"
 
     def clean(self):
         try:
@@ -1222,7 +1238,8 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
         Método que retorna uma lista com os protocolos
         aprovados para o servidor.
         """
-        manifestacoes = ManifestacaoInteresse.objects.filter(servidor=servidor)
+        manifestacoes = ManifestacaoInteresse.objects.filter(
+            lotacao_servidor__servidor=servidor)
         planos_trabalho = PlanoTrabalho.objects.filter(
             manifestacao__in=manifestacoes)
         pareceres_cigt = DespachoCIGTPlanoTrabalho.objects.filter(
@@ -1333,8 +1350,8 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
                         if controle_mensal.vigente:
                             if controle_mensal.publicado_doe == 'nao_publicado' or controle_mensal.publicado_doe == 'republicado':
                                 # if controle_mensal.protocolo_autorizacao.publicado_doe == 'nao_publicado' or controle_mensal.protocolo_autorizacao.publicado_doe == 'republicado':
-                                rg = plano_trabalho.manifestacao.servidor.rg_format()
-                                servidor = plano_trabalho.manifestacao.servidor.nome.upper()
+                                rg = plano_trabalho.manifestacao.lotacao_servidor.servidor.user.rg_format()
+                                servidor = plano_trabalho.manifestacao.lotacao_servidor.servidor.user.nome.upper()
                                 try:
                                     sid = controle_mensal.protocolo_autorizacao.sid_format()
                                     csvfile.write(f'{servidor}, {rg}, {sid}\n')
@@ -1366,8 +1383,8 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
                         if not controle_mensal.vigente:
                             # if controle_mensal.protocolo_autorizacao.publicado_doe == 'publicado':
                             if controle_mensal.publicado_doe == 'publicado':
-                                rg = plano_trabalho.manifestacao.servidor.rg_format()
-                                servidor = plano_trabalho.manifestacao.servidor.nome.upper()
+                                rg = plano_trabalho.manifestacao.lotacao_servidor.servidor.user.rg_format()
+                                servidor = plano_trabalho.manifestacao.lotacao_servidor.servidor.user.nome.upper()
                                 try:
                                     sid = controle_mensal.protocolo_autorizacao.sid_format()
                                     csvfile.write(f'{servidor}, {rg}, {sid}\n')
@@ -1530,7 +1547,7 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
                 f'encaminhamento: {encaminhamento_avaliacao} - avaliação {avaliacao}')
 
             if not avaliacao.atestado_cumprimento_metas:
-                servidor = avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.servidor
+                servidor = avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor
                 mes_avaliacao = avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao
                 ano_avaliacao = avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao
                 print(
@@ -1562,7 +1579,7 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
             'data': self.get_date(),
             'unidade': self.despacho_cigt.plano_trabalho.manifestacao.unidade,
             'setor': self.despacho_cigt.plano_trabalho.manifestacao.setor,
-            'servidor': self.despacho_cigt.plano_trabalho.manifestacao.servidor,
+            'servidor': self.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor,
             'funcao': self.despacho_cigt.plano_trabalho.manifestacao.funcao,
             # declaracao de nao enquadramento nas vedacoes
             'estagio_probatorio': self.get_last_declaracao_nao_enquadramento().estagio_probatorio,
@@ -1674,7 +1691,7 @@ class ControleMensalTeletrabalho(models.Model):
         aprovados para um servidor.
         """
         planos_trabalho = PlanoTrabalho.objects.filter(
-            manifestacao__servidor=servidor)
+            manifestacao__lotacao_servidor__servidor=servidor)
         registros = cls.objects.filter(
             protocolo_autorizacao__despacho_cigt__plano_trabalho__in=planos_trabalho)
         periodos = set()
@@ -1740,7 +1757,7 @@ class DespachoEncaminhaAvaliacao(DespachoCIGTAbstract):
             'sid': sid,
             'setor': self.despacho_cigt.plano_trabalho.manifestacao.setor,
             'numeracao': self.numeracao,
-            'servidor': self.despacho_cigt.plano_trabalho.manifestacao.servidor,
+            'servidor': self.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor,
             'num_despacho': self.despacho_cigt.numeracao,
             'ano_despacho': self.despacho_cigt.ano,
             'mes_avaliacao': self.mes_avaliacao,
@@ -1775,6 +1792,11 @@ class AvaliacaoChefia(BaseModelGeneral):
     justificativa_nao_cumprimento = models.TextField(blank=True, null=True)
     encaminhamento_avaliacao_cigt = models.ForeignKey(DespachoEncaminhaAvaliacao, related_name="%(app_label)s_%(class)s_encaminha_avaliacao", on_delete=models.CASCADE)  # noqa E501
     finalizar_avaliacao = models.BooleanField(default=False)
+
+    def get_cumprimento(self) -> str:
+        for c in self._CUMPRIMENTO_METAS:
+            if c[0] == self.atestado_cumprimento_metas:
+                return c[1]
 
     def get_plano_trabalho(self):
         """
@@ -1913,22 +1935,35 @@ class AvaliacaoChefia(BaseModelGeneral):
 
     def get_context_docx(self):
         context = {
-            'servidor': self.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.servidor,
-            'chefia': self.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.chefia_imediata,
+            'servidor': self.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor,
+            'chefia': self.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_chefia.servidor,
             'atividades': self.get_atividades_para_avaliacao(),
             'mes': self.encaminhamento_avaliacao_cigt.mes_avaliacao,
             'ano': self.encaminhamento_avaliacao_cigt.ano_avaliacao,
-            'atestado_cumprimento_metas': self.atestado_cumprimento_metas,
+            'atestado_cumprimento_metas': self.get_cumprimento(),
             'justificativa_nao_cumprimento': self.justificativa_nao_cumprimento,  # noqa E501
         }
         return context
 
     def __str__(self):
-        return f'Avaliação {self.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.servidor}'
+        return f'Avaliação {self.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor}'
 
     class Meta:
         verbose_name = 'Avaliação da Chefia'
         verbose_name_plural = 'Chefia | Avaliações da Chefia'
+
+
+class AlterarAvaliacaoChefia(models.Model):
+    avaliacao_chefia = models.ForeignKey(AvaliacaoChefia, related_name="%(app_label)s_%(class)s_avaliacao_chefia", on_delete=models.CASCADE)  # noqa E501
+    justificativa = models.TextField()
+    adicionado_por = models.ForeignKey(User, related_name='%(app_label)s_%(class)s_add_by', on_delete=models.CASCADE)  # noqa E501
+
+    def __str__(self):
+        return f'Justificativa Alteração Avaliação: {self.avaliacao_chefia}'
+
+    class Meta:
+        verbose_name = 'Justificativa Alteração Avaliação'
+        verbose_name_plural = 'Chefia | Justificativas Alterações Avaliações da Chefia'
 
 
 class DespachoRetornoAvaliacao(DespachoCIGTAbstract):
@@ -1958,7 +1993,7 @@ class DespachoRetornoAvaliacao(DespachoCIGTAbstract):
             'sid': sid,
             'setor': self.avaliacao_chefia.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.setor,
             'numeracao': self.numeracao,
-            'servidor': self.avaliacao_chefia.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.servidor,
+            'servidor': self.avaliacao_chefia.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor,
             'cumprimento_integral': self.cumprimento_integral,
             'mes_avaliacao': self.avaliacao_chefia.encaminhamento_avaliacao_cigt.mes_avaliacao,
             'ano_avaliacao': self.avaliacao_chefia.encaminhamento_avaliacao_cigt.ano_avaliacao,
@@ -2284,16 +2319,17 @@ def controle_mensal_teletrabalho_callback(sender, **kwargs):
     acrescentar ou remover o servidor da Portaria de autorização.
 
     """
+
     instance = kwargs['instance']
     created = kwargs['created']
 
     if created:
 
-        servidor = instance.despacho_cigt.plano_trabalho.manifestacao.servidor
+        servidor = instance.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor
         planos_trabalho = PlanoTrabalho.objects.filter(
-            manifestacao__servidor=servidor)
-        pareceres_cigt = DespachoCIGTPlanoTrabalho.objects.filter(
-            plano_trabalho__in=planos_trabalho)
+            manifestacao__lotacao_servidor__servidor=servidor)
+        # pareceres_cigt = DespachoCIGTPlanoTrabalho.objects.filter(
+        #     plano_trabalho__in=planos_trabalho)
         # filtra todos os protocolos já aprovados
         protocolos_servidor = ProtocoloAutorizacaoTeletrabalho.get_protocolos_aprovados_por_servidor(
             servidor)

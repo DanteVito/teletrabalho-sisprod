@@ -4,8 +4,8 @@ from django.forms import BaseInlineFormSet, ModelForm, inlineformset_factory
 
 from authentication.models import User
 
-from .models import (AtividadesTeletrabalho, AutorizacoesExcecoes,
-                     AvaliacaoChefia, Cargo,
+from .models import (AlterarAvaliacaoChefia, AtividadesTeletrabalho,
+                     AutorizacoesExcecoes, AvaliacaoChefia, Cargo,
                      DeclaracaoNaoEnquadramentoVedacoes, Lotacao,
                      ManifestacaoInteresse, PeriodoTeletrabalho, PlanoTrabalho,
                      PortariasPublicadasDOE, PostosTrabalho,
@@ -125,11 +125,13 @@ class DeclaracaoNaoEnquadramentoVedacoesForm(ModelForm):
         self.user = kwargs.pop('user')
         super(DeclaracaoNaoEnquadramentoVedacoesForm,
               self).__init__(*args, **kwargs)
+        servidor = Servidor.objects.get(user=self.user)
 
         self.fields['manifestacao'] = forms.ModelChoiceField(
-            queryset=ManifestacaoInteresse.objects.filter(servidor=self.user),
+            queryset=ManifestacaoInteresse.objects.filter(
+                lotacao_servidor__servidor=servidor),
             initial=ManifestacaoInteresse.objects.filter(
-                servidor=self.user).last(),
+                lotacao_servidor__servidor=servidor).last(),
             widget=forms.Select(),
         )
 
@@ -159,9 +161,9 @@ class PlanoTrabalhoForm(ModelForm):
         if not self.user.groups.filter(name="CIGT"):
             self.fields['manifestacao'] = forms.ModelChoiceField(
                 queryset=ManifestacaoInteresse.objects.filter(
-                    servidor=self.user),
+                    lotacao_servidor__servidor__user=self.user),
                 initial=ManifestacaoInteresse.objects.filter(
-                    servidor=self.user).last(),
+                    lotacao_servidor__servidor__user=self.user).last(),
                 widget=forms.Select(),
             )
 
@@ -370,6 +372,30 @@ class AtividadeCumprimentoForm(ModelForm):
         fields = ('cumprimento', )
         widgets = {
             'cumprimento': forms.Select(attrs={'class': 'input'})
+        }
+
+
+class AlterarAvaliacaoChefiaForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        self.avaliacao = kwargs.pop('avaliacao')
+        super(AlterarAvaliacaoChefiaForm,
+              self).__init__(*args, **kwargs)
+
+        self.fields['avaliacao_chefia'] = forms.ModelChoiceField(
+            queryset=AvaliacaoChefia.objects.filter(id=self.avaliacao.id),
+            initial=AvaliacaoChefia.objects.filter(
+                id=self.avaliacao.id).first(),
+        )
+
+    class Meta:
+        model = AlterarAvaliacaoChefia
+        fields = (
+            'avaliacao_chefia',
+            'justificativa',
+        )
+        widgets = {
+            'avaliação': forms.Select(attrs={'class': 'input'}),
+            'justificativa': forms.Textarea(attrs={'class': 'textarea', 'cols': '30', 'rows': '10', 'placeholder': 'Justificativa para alteração ...'}),
         }
 
 

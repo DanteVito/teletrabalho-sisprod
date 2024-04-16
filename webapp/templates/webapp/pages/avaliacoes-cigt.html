@@ -28,11 +28,11 @@
                     <td>{{ avaliacao.id }}</td>
                     <td>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}</td>
                     <td>{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }}</td>
-                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.unidade }}</td>
-                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.setor }}</td>
-                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.servidor }}</td>
-                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.funcao }}</td>
-                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.posto_trabalho }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.unidade }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.setor }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.funcao }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho }}</td>
                 </tr>
             {% endif %}
         {% endfor %}

@@ -17,7 +17,6 @@
                 <th>Unidade</th>
                 <th>Setor</th>
                 <th>Servidor</th>
-                <th>Função</th>
                 <th>Posto de Trabalho</th>
                 <th>Analisar</th>
                 <th>Deletar</th>
@@ -27,11 +26,10 @@
             {% for autorizacao in autorizacoes %}
                 <tr>
                     <td><a href={% url "webapp:download_docx" "autorizacao-excecao" autorizacao.id %}>{{ autorizacao.id }}</a></td>
-                    <td>{{ autorizacao.declaracao.manifestacao.unidade }}</td>
-                    <td>{{ autorizacao.declaracao.manifestacao.setor }}</td>
-                    <td>{{ autorizacao.declaracao.manifestacao.servidor }}</td>
-                    <td>{{ autorizacao.declaracao.manifestacao.funcao }}</td>
-                    <td>{{ autorizacao.declaracao.manifestacao.posto_trabalho }}</td>
+                    <td>{{ autorizacao.declaracao.manifestacao.lotacao_servidor.posto_trabalho.setor.unidade }}</td>
+                    <td>{{ autorizacao.declaracao.manifestacao.lotacao_servidor.posto_trabalho.setor.nome }}</td>
+                    <td>{{ autorizacao.declaracao.manifestacao.lotacao_servidor.servidor }}</td>
+                    <td>{{ autorizacao.declaracao.manifestacao.lotacao_servidor.posto_trabalho.posto }}</td>
                     <td>{% if autorizacao.aprovado_gabinete == 'aprovado' %}ACEITA{% elif autorizacao.aprovado_gabinete == 'reprovado' %}NÃO ACEITA{% else %}<a href={% url 'webapp:autorizacao_excecao_edit' autorizacao.pk %}>ANALISAR</a>{% endif %}</td>
                     <td>{% if autorizacao.aprovado_gabinete == 'aprovado' %}X{% elif autorizacao.aprovado_gabinete == 'reprovado' %}X{% else %}<a href={% url 'webapp:autorizacao_excecao_edit' autorizacao.pk %}><a href="{% url 'webapp:autorizacao_excecao_delete' autorizacao.pk %}">deletar</a></a>{% endif %}</td>
                     
