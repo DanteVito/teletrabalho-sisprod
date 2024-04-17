@@ -1,6 +1,7 @@
 import csv
 import string
 
+from decouple import config
 from django.db.utils import IntegrityError
 from unidecode import unidecode
 
@@ -80,7 +81,7 @@ def create_users(file: str) -> None:
     try:
         admin = User.objects.create_superuser(
             username='admin',
-            password='admin',
+            password=config('ADMIN'),
             nome='admin',
         )
         print(f'[+ criado superusuário]: {admin.username}')
@@ -127,6 +128,34 @@ def create_users(file: str) -> None:
             )
             if lotacao_created:
                 print(f'[+ lotação] {lotacao}')
+
+            # adiciona posto de trabalho na lotacao do servidor
+            try:
+                # posição 4 - unidade
+                # posição 5 - setor
+                # posição 6 - posto de trabalho
+                unidade_sigla = data_item[4]
+                setor_sigla = data_item[5]
+                posto_trabalho_posto = data_item[6]
+                unidade = Unidade.objects.get(sigla=unidade_sigla)
+                setor = Setor.objects.get(
+                    unidade=unidade, sigla=setor_sigla)
+                posto_trabalho = PostosTrabalho.objects.get(
+                    setor=setor,
+                    posto=posto_trabalho_posto
+                )
+
+                lotacao, created = Lotacao.objects.update_or_create(
+                    servidor=servidor,
+                    posto_trabalho=posto_trabalho
+                )
+
+                if not created:
+                    print(
+                        f'[+ posto de trabalho {posto_trabalho} -> {servidor}]')
+
+            except IndexError:
+                ...
 
 
 def migrate(file: str, model, field: str) -> None:

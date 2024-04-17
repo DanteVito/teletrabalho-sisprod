@@ -1957,6 +1957,7 @@ class AlterarAvaliacaoChefia(models.Model):
     avaliacao_chefia = models.ForeignKey(AvaliacaoChefia, related_name="%(app_label)s_%(class)s_avaliacao_chefia", on_delete=models.CASCADE)  # noqa E501
     justificativa = models.TextField()
     adicionado_por = models.ForeignKey(User, related_name='%(app_label)s_%(class)s_add_by', on_delete=models.CASCADE)  # noqa E501
+    data_criacao = models.DateTimeField(auto_now_add=True)  # noqa E501
 
     def __str__(self):
         return f'Justificativa Alteração Avaliação: {self.avaliacao_chefia}'
@@ -1983,15 +1984,9 @@ class DespachoRetornoAvaliacao(DespachoCIGTAbstract):
     cumprimento_integral = models.CharField(choices=_CUMPRIMENTO_METAS, null=True, max_length=255)  # noqa E501
 
     def get_context_docx(self):
-        try:
-            sid = ProtocoloAutorizacaoTeletrabalho.objects.get(
-                despacho_cigt=self.despacho_cigt).sid
-        except ProtocoloAutorizacaoTeletrabalho.DoesNotExist:
-            raise Exception("Não há protocolo de autorização!")
         context = {
             'ano': self.ano,
-            'sid': sid,
-            'setor': self.avaliacao_chefia.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.setor,
+            'setor': self.avaliacao_chefia.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho.setor,
             'numeracao': self.numeracao,
             'servidor': self.avaliacao_chefia.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor,
             'cumprimento_integral': self.cumprimento_integral,

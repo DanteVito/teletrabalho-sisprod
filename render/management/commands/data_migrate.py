@@ -26,6 +26,14 @@ class Command(BaseCommand):
         # modelos de documentos
         _MODELOS = [
             'MANIFESTACAO INTERESSE',
+            'APROVACAO EXCECAO DIRETOR',
+            'DECLARACAO NAO ENQUADRAMENTO VEDACOES',
+            'PLANO DE TRABALHO',
+            'PARECER PLANO DE TRABALHO CIGT',
+            'PROTOCOLO AUTORIZACAO TELETRABALHO',
+            'PORTARIA DOE',
+            'DESPACHO ENCAMINHA AVALIACAO CIGT',
+            'AVALIACAO CHEFIA',
         ]
         for nome_modelo in _MODELOS:
             try:

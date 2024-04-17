@@ -63,5 +63,14 @@
     {% endif %}
 </form>
 
+<h3 class="title is-3">Histórico de Alterações</h3>
+
+{% for alteracao in alteracoes_avaliacao %}
+    <p>{{ alteracao.avaliacao_chefia.encaminhamento_avaliacao_cigt.mes_avaliacao }}/{{ alteracao.avaliacao_chefia.encaminhamento_avaliacao_cigt.ano_avaliacao }}</p>
+    <p>{{ alteracao.justificativa }}</p>
+    <p>adicionado por: {{ alteracao.adicionado_por }}</p>
+    <p>{{ alteracao.data_criacao }}</p>
+{% endfor %}
+
 
 {% endblock%}

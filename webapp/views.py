@@ -25,9 +25,9 @@ from render.forms import (AlterarAvaliacaoChefiaForm, AtividadeCumprimentoForm,
                           ProtocoloAutorizacaoTeletrabalhoAprovaForm,
                           ProtocoloAutorizacaoTeletrabalhoForm, ServidorForm,
                           UserForm)
-from render.models import (AtividadesTeletrabalho, AutorizacoesExcecoes,
-                           AvaliacaoChefia, Chefia, ComissaoInterna,
-                           ControleMensalTeletrabalho,
+from render.models import (AlterarAvaliacaoChefia, AtividadesTeletrabalho,
+                           AutorizacoesExcecoes, AvaliacaoChefia, Chefia,
+                           ComissaoInterna, ControleMensalTeletrabalho,
                            DeclaracaoNaoEnquadramentoVedacoes,
                            DespachoCIGTPlanoTrabalho, Lotacao,
                            ManifestacaoInteresse, ModeloDocumento, Numeracao,
@@ -1014,9 +1014,10 @@ def encaminhar_avaliacoes_cigt(request):
         for protocolo_autorizacao in ProtocoloAutorizacaoTeletrabalho.objects.all():
             for avaliacao in protocolo_autorizacao.encaminha_pedido_avaliacao():
                 avaliacoes_encaminhadas.append(avaliacao)
-        context = {
-            'avaliacoes_encaminhadas': avaliacoes_encaminhadas,
-        }
+
+        if not avaliacoes_encaminhadas:
+            messages.info(request, 'Nenhuma avaliação pendente de envio!')
+
         return redirect(reverse('webapp:cigt_analisar_avaliacoes_mensais'))
     return HttpResponseBadRequest("proibido-cigt")
 
@@ -1256,6 +1257,7 @@ def avaliacao_atividades_list(request, pk):
             'form': form,
             'atividades_e_forms': atividades_e_forms,
             'user_chefia': request.user.groups.filter(name='CHEFIAS'),
+            'alteracoes_avaliacao': AlterarAvaliacaoChefia.objects.filter(avaliacao_chefia=avaliacao)
         }
 
         return render(request, 'webapp/pages/avaliacao-chefia-atividades-list.html', context)
