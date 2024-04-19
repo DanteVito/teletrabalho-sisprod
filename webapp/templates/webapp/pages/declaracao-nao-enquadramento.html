@@ -20,7 +20,7 @@
                 <th>Servidor</th>
                 <th>Aceita</th>
                 {% comment %} <th>Editar</th> {% endcomment %}
-                <th>Deletar</th>
+                {% comment %} <th>Deletar</th> {% endcomment %}
             </tr>
         </thead>
         <tbody>
@@ -30,7 +30,7 @@
                     <td>{{ declaracao.manifestacao.lotacao_servidor.servidor.user.nome }}</td>
                     <td><a href={% url "webapp:download_docx" "declaracao" declaracao.id %}>SIM</a></td>
                     {% comment %} <td><a href="{% url 'webapp:declaracao_nao_enquadramento_edit' declaracao.pk %}">editar</a></td> {% endcomment %}
-                    <td><a href="{% url 'webapp:declaracao_nao_enquadramento_delete' declaracao.pk %}">deletar</a></td>
+                    {% comment %} <td><a href="{% url 'webapp:declaracao_nao_enquadramento_delete' declaracao.pk %}">deletar</a></td> {% endcomment %}
                 </tr>
             {% endfor %}
         </tbody>

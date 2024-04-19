@@ -530,7 +530,7 @@ class AvaliacaoChefiaAdmin(admin.ModelAdmin):
 class DespachoCIGTPlanoTrabalhoAdmin(admin.ModelAdmin):
     list_display = ('plano_trabalho', 'ano', 'numeracao', 'data_criacao', 'membro_cigt')  # noqa E501
     actions = (generate_docx, publica_doe, )
-    fields = ('plano_trabalho', 'membro_cigt', 'ano', 'data', 'deferido', )  # noqa E501
+    fields = ('plano_trabalho', 'membro_cigt', 'ano', 'data', 'deferido', 'volume_docx')  # noqa E501
     autocomplete_fields = ()
     search_fields = ('plano_trabalho__servidor',)
     list_filter = ()

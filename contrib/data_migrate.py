@@ -6,8 +6,8 @@ from django.db.utils import IntegrityError
 from unidecode import unidecode
 
 from authentication.models import User
-from render.models import (Cargo, Lotacao, PostosTrabalho, Servidor, Setor,
-                           Unidade)
+from render.models import (Cargo, Chefia, Lotacao, PostosTrabalho, Servidor,
+                           Setor, Unidade)
 
 
 def strip_remove_ponctuation(s: str) -> str:
@@ -123,12 +123,6 @@ def create_users(file: str) -> None:
                 print(f'[+ servidor] {servidor.user.nome}')
 
             # cria lotacao
-            lotacao, lotacao_created = Lotacao.objects.update_or_create(
-                servidor=servidor
-            )
-            if lotacao_created:
-                print(f'[+ lotação] {lotacao}')
-
             # adiciona posto de trabalho na lotacao do servidor
             try:
                 # posição 4 - unidade
@@ -155,7 +149,59 @@ def create_users(file: str) -> None:
                         f'[+ posto de trabalho {posto_trabalho} -> {servidor}]')
 
             except IndexError:
-                ...
+                lotacao, lotacao_created = Lotacao.objects.update_or_create(
+                    servidor=servidor
+                )
+                if lotacao_created:
+                    print(f'[+ lotação] {lotacao}')
+
+
+def create_chefias(file: str) -> None:
+    with open(file, 'r', encoding='utf-8') as f:
+        for item in f:
+            data_item = item.strip().split(',')
+            # servidor
+            # posicao 0: unidade posto_trabalho
+            sigla_posto_trabalho = data_item[0]
+            unidade_servidor = Unidade.objects.get(sigla=sigla_posto_trabalho)
+            # posicao 1: setor posto_trabalho
+            sigla_setor_posto_trabalho = data_item[1]
+            setor_servidor = Setor.objects.get(
+                unidade=unidade_servidor,
+                sigla=sigla_setor_posto_trabalho
+            )
+            # posicao 2: posto posto_trabalho
+            posto_posto_trabalho = data_item[2]
+            posto_trabalho_servidor = PostosTrabalho.objects.get(
+                setor=setor_servidor,
+                posto=posto_posto_trabalho
+            )
+            # chefia
+            # posicao 3: unidade posto_trabalho chefia
+            sigla_posto_trabalho_chefia = data_item[3]
+            unidade_chefia = Unidade.objects.get(
+                sigla=sigla_posto_trabalho_chefia)
+            # posicao 4: setor posto_trabalho chefia
+            sigla_setor_posto_trabalho_chefia = data_item[4]
+            setor_chefia = Setor.objects.get(
+                unidade=unidade_chefia,
+                sigla=sigla_setor_posto_trabalho_chefia
+            )
+            # posicao 5: unidade posto_trabalho chefia
+            posto_posto_trabalho_chefia = data_item[5]
+            posto_trabalho_chefia = PostosTrabalho.objects.get(
+                setor=setor_chefia,
+                posto=posto_posto_trabalho_chefia
+            )
+
+            chefia, created = Chefia.objects.update_or_create(
+                posto_trabalho=posto_trabalho_servidor,
+                posto_trabalho_chefia=posto_trabalho_chefia
+            )
+
+            if created:
+                print(
+                    f'[+ relacionamento chefia adicionado] {posto_trabalho_servidor} -> {posto_trabalho_chefia}')
 
 
 def migrate(file: str, model, field: str) -> None:

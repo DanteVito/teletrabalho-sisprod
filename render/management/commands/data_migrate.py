@@ -34,6 +34,7 @@ class Command(BaseCommand):
             'PORTARIA DOE',
             'DESPACHO ENCAMINHA AVALIACAO CIGT',
             'AVALIACAO CHEFIA',
+            'DESPACHO RETORNO AVALIACAO CIGT',
         ]
         for nome_modelo in _MODELOS:
             try:

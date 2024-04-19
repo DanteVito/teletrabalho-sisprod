@@ -32,7 +32,7 @@ from render.models import (AlterarAvaliacaoChefia, AtividadesTeletrabalho,
                            DespachoCIGTPlanoTrabalho, Lotacao,
                            ManifestacaoInteresse, ModeloDocumento, Numeracao,
                            PeriodoTeletrabalho, PlanoTrabalho,
-                           PortariasPublicadasDOE,
+                           PortariasPublicadasDOE, PostosTrabalho,
                            ProtocoloAutorizacaoTeletrabalho, Servidor)
 
 
@@ -46,8 +46,8 @@ def home(request):
 @login_required
 def dados_cadastrais(request):
     user_groups = request.user.groups.all()
-    # form_user = UserForm(instance=request.user)
     servidor = Servidor.objects.get(user__id=request.user.id)
+    ultima_lotacao = Lotacao.objects.filter(servidor=servidor).last()
     form_servidor = ServidorForm(user=request.user, instance=servidor)
 
     if request.method == 'POST':
@@ -62,9 +62,9 @@ def dados_cadastrais(request):
                 messages.error(request, e)
 
     context = {
-        # 'form_user': form,
         'form_servidor': form_servidor,
         'user_groups': user_groups,
+        'ultima_lotacao': ultima_lotacao,
     }
 
     return render(request, 'webapp/pages/dados-cadastrais.html', context)
@@ -88,7 +88,8 @@ def manifestacao_interesse(request):
 
 @login_required
 def manifestacao_interesse_create(request):
-    lotacao_servidor = Lotacao.objects.get(servidor__user=request.user)
+    lotacao_servidor = Lotacao.objects.filter(
+        servidor__user=request.user).last()
     manifestacoes = ManifestacaoInteresse.objects.filter(
         lotacao_servidor=lotacao_servidor)
     for m in manifestacoes:
@@ -322,79 +323,84 @@ def declaracao_nao_enquadramento_create(request):
             if not manifestacao in ManifestacaoInteresse.objects.filter(lotacao_servidor__servidor__user=request.user):
                 return HttpResponseBadRequest("not allowed")
 
-            obj.adicionado_por = request.user
-            obj.modificado_por = request.user
-            modelo_aprovacao_excecao = ModeloDocumento.objects.get(nome_modelo="APROVACAO EXCECAO DIRETOR")  # noqa E501
-            modelo_declaracao = ModeloDocumento.objects.get(
-                nome_modelo='DECLARACAO NAO ENQUADRAMENTO VEDACOES')
-            obj.modelo = modelo_declaracao
+            if DeclaracaoNaoEnquadramentoVedacoes.objects.filter(manifestacao=manifestacao):
+                messages.info(
+                    request, 'Não é possível cadastrar mais de uma Declaração para mesma Manifestação de Interesse!')
+#                 return redirect(reverse('webapp:declaracao_nao_enquadramento'))
 
-            lotacao_servidor = Lotacao.objects.filter(
-                servidor__user=request.user).last()
+#             obj.adicionado_por = request.user
+#             obj.modificado_por = request.user
+#             modelo_aprovacao_excecao = ModeloDocumento.objects.get(nome_modelo="APROVACAO EXCECAO DIRETOR")  # noqa E501
+#             modelo_declaracao = ModeloDocumento.objects.get(
+#                 nome_modelo='DECLARACAO NAO ENQUADRAMENTO VEDACOES')
+#             obj.modelo = modelo_declaracao
 
-            if not obj.cargo_chefia_direcao or lotacao_servidor.posto_trabalho.chefia:
-                if not obj.justificativa_excecao:
-                    messages.info(
-                        request, "É necessário preencher a justificativa para exceção de teletrabalho das chefias!")
-                    return redirect(reverse('webapp:declaracao_nao_enquadramento_create'))
-                obj.save()
-                if not AutorizacoesExcecoes.objects.filter(declaracao=obj):
-                    AutorizacoesExcecoes.objects.create(
-                        declaracao=obj, modelo=modelo_aprovacao_excecao)
-            else:
-                obj.save()
-            messages.info(request, "Declaração cadastrada com sucesso!")
-            return redirect(reverse('webapp:declaracao_nao_enquadramento'))
+#             lotacao_servidor = Lotacao.objects.filter(
+#                 servidor__user=request.user).last()
 
-        for _, error_list in form.errors.items():
-            for e in error_list:
-                messages.error(request, e)
+#             if not obj.cargo_chefia_direcao or lotacao_servidor.posto_trabalho.chefia:
+#                 if not obj.justificativa_excecao:
+#                     messages.info(
+#                         request, "É necessário preencher a justificativa para exceção de teletrabalho das chefias!")
+#                     return redirect(reverse('webapp:declaracao_nao_enquadramento_create'))
+#                 obj.save()
+#                 if not AutorizacoesExcecoes.objects.filter(declaracao=obj):
+#                     AutorizacoesExcecoes.objects.create(
+#                         declaracao=obj, modelo=modelo_aprovacao_excecao)
+#             else:
+#                 obj.save()
+#             messages.info(request, "Declaração cadastrada com sucesso!")
+#             return redirect(reverse('webapp:declaracao_nao_enquadramento'))
 
-    context = {
-        'tipo_form': 'create',
-        'form': form
-    }
-    return render(request, 'webapp/pages/declaracao-nao-enquadramento-form.html', context)
+#         for _, error_list in form.errors.items():
+#             for e in error_list:
+#                 messages.error(request, e)
+
+#     context = {
+#         'tipo_form': 'create',
+#         'form': form
+#     }
+#     return render(request, 'webapp/pages/declaracao-nao-enquadramento-form.html', context)
 
 
-@login_required
-def declaracao_nao_enquadramento_edit(request, pk):
-    # garante que somente o proprio usuário possa
-    # editar a declaração que ele cadastrou
-    try:
-        instance = DeclaracaoNaoEnquadramentoVedacoes.objects.get(
-            pk=pk, manifestacao__servidor=request.user)
-    except DeclaracaoNaoEnquadramentoVedacoes.DoesNotExist:
-        return HttpResponseBadRequest()
+# @login_required
+# def declaracao_nao_enquadramento_edit(request, pk):
+#     # garante que somente o proprio usuário possa
+#     # editar a declaração que ele cadastrou
+#     try:
+#         instance = DeclaracaoNaoEnquadramentoVedacoes.objects.get(
+#             pk=pk, manifestacao__servidor=request.user)
+#     except DeclaracaoNaoEnquadramentoVedacoes.DoesNotExist:
+#         return HttpResponseBadRequest()
 
-    form = DeclaracaoNaoEnquadramentoVedacoesForm(
-        instance=instance, user=request.user)
-    if request.method == 'POST':
-        form = DeclaracaoNaoEnquadramentoVedacoesForm(
-            request.POST, instance=instance, user=request.user)
-        if form.is_valid():
-            obj = form.save(commit=False)
-            obj.modificado_por = request.user
-            obj.save()
+#     form = DeclaracaoNaoEnquadramentoVedacoesForm(
+#         instance=instance, user=request.user)
+#     if request.method == 'POST':
+#         form = DeclaracaoNaoEnquadramentoVedacoesForm(
+#             request.POST, instance=instance, user=request.user)
+#         if form.is_valid():
+#             obj = form.save(commit=False)
+#             obj.modificado_por = request.user
+#             obj.save()
 
-            if not obj.cargo_chefia_direcao:
-                if not AutorizacoesExcecoes.objects.filter(declaracao=obj):
-                    modelo_aprovacao_excecao = ModeloDocumento.objects.get(nome_modelo="APROVACAO EXCECAO DIRETOR")  # noqa E501
-                    AutorizacoesExcecoes.objects.create(
-                        declaracao=obj, modelo=modelo_aprovacao_excecao)
+#             if not obj.cargo_chefia_direcao:
+#                 if not AutorizacoesExcecoes.objects.filter(declaracao=obj):
+#                     modelo_aprovacao_excecao = ModeloDocumento.objects.get(nome_modelo="APROVACAO EXCECAO DIRETOR")  # noqa E501
+#                     AutorizacoesExcecoes.objects.create(
+#                         declaracao=obj, modelo=modelo_aprovacao_excecao)
 
-            messages.info(request, "Declaração alterada com sucesso!")
-            return redirect(reverse('webapp:declaracao_nao_enquadramento'))
+#             messages.info(request, "Declaração alterada com sucesso!")
+#             return redirect(reverse('webapp:declaracao_nao_enquadramento'))
 
-        for _, error_list in form.errors.items():
-            for e in error_list:
-                messages.error(request, e)
+#         for _, error_list in form.errors.items():
+#             for e in error_list:
+#                 messages.error(request, e)
 
-    context = {
-        'tipo_form': 'edit',
-        'form': form
-    }
-    return render(request, 'webapp/pages/declaracao-nao-enquadramento-form.html', context)
+#     context = {
+#         'tipo_form': 'edit',
+#         'form': form
+#     }
+#     return render(request, 'webapp/pages/declaracao-nao-enquadramento-form.html', context)
 
 
 @login_required
@@ -554,7 +560,7 @@ def plano_trabalho_edit(request, pk):
 
     try:
         instance = PlanoTrabalho.objects.get(
-            pk=pk, manifestacao__servidor=request.user)
+            pk=pk, manifestacao__lotacao_servidor__servidor__user=request.user)
         if instance.aprovado_chefia:
             return redirect(reverse('webapp:plano_trabalho'))
     except PlanoTrabalho.DoesNotExist:
@@ -563,7 +569,7 @@ def plano_trabalho_edit(request, pk):
     periodos_teletrabalho = PeriodoTeletrabalho.objects.filter(
         plano_trabalho=instance)
     form = PlanoTrabalhoForm(
-        instance=instance, user=instance.manifestacao.servidor)
+        instance=instance, user=instance.manifestacao.lotacao_servidor.servidor.user)
     periodos_formset = PeriodoTeletrabalhoFormSet()
     if request.method == 'POST':
         form = PlanoTrabalhoForm(
@@ -1090,30 +1096,7 @@ def protocolo_autorizacao_teletrabalho_edit(request, pk):
 
 @login_required
 def servidor(request):
-    # checar o cadastro
-    servidor = Servidor.objects.get(user=request.user)
-    check_dados = servidor.check_dados()
-    # verifica se existe Manifestacao de Interesse
-    last_manifestacao_interesse = ManifestacaoInteresse.objects.filter(
-        lotacao__servidor__user=request.user).last()
-    # verifica se a Manifestação já foi aprovada pela chefia
-    # verifica se existe Declaração de Não Enquadramento
-    last_declaracao_nao_enquadramento = DeclaracaoNaoEnquadramentoVedacoes.objects.filter(
-        manifestacao__lotacao__servidor__user=request.user)
-    last_plano_trabalho = PlanoTrabalho.objects.filter(
-        manifestacao__lotacao__servidor__user=request.user)
-    # verifica se existe pendencia de autorização para teletrabalho das chefias
-    autorizacoes_excecao_chefia = AutorizacoesExcecoes.objects.filter(
-        declaracao__manifestacao__lotacao__servidor__user=request.user)
-
-    context = {
-        'check_dados': check_dados,
-        'last_manifestacao_interesse': last_manifestacao_interesse,
-        'last_declaracao_nao_enquadramento': last_declaracao_nao_enquadramento,
-        'last_plano_trabalho': last_plano_trabalho,
-        'autorizacoes_excecao_chefia': autorizacoes_excecao_chefia,
-    }
-
+    context = {}
     return render(request, 'webapp/pages/servidor.html', context)
 
 

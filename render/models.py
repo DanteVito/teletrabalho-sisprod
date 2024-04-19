@@ -20,6 +20,8 @@ from prettytable import PrettyTable
 
 from authentication.models import User
 
+from .create_volume import combine_docx
+
 
 class ComissaoInterna(models.Model):
     _FUNCAO = {
@@ -750,6 +752,13 @@ class PlanoTrabalho(BaseModelGeneral):
             periodo__in=periodos)
         return atividades
 
+    def get_atividades_por_periodo(self):
+        d = dict()
+        periodos = self.get_periodos_teletrabalho()
+        for periodo in periodos:
+            d[periodo] = AtividadesTeletrabalho.objects.filter(periodo=periodo)
+        return d
+
     def get_context_docx(self):
         context = {
             'data': self.get_date(),
@@ -764,6 +773,7 @@ class PlanoTrabalho(BaseModelGeneral):
             'periodo_comparecimento': self.periodo_comparecimento,
             'periodo_acionamento': self.periodo_acionamento,
             'atividades': self.get_atividades_plano_trabalho(),
+            'atividades_por_periodo': self.get_atividades_por_periodo(),
         }
         return context
 
@@ -996,6 +1006,7 @@ class DespachoCIGTPlanoTrabalho(DespachoCIGTAbstract):
     plano_trabalho = models.ForeignKey(PlanoTrabalho, related_name="%(app_label)s_%(class)s_plano_trabalho", on_delete=models.CASCADE)  # noqa E501
     deferido = models.BooleanField(default=True)
     observacoes = models.TextField(null=True, blank=True)
+    volume_docx = models.FileField(upload_to='generated_docx/', blank=True, null=True)  # noqa E501
 
     @classmethod
     def get_diff_months(cls, data_inicio, data_fim):
@@ -1194,6 +1205,56 @@ class DespachoCIGTPlanoTrabalho(DespachoCIGTAbstract):
             'excecao_cargo_chefia_direcao': self.get_excecao_cargo_chefia_direcao(),
         }
         return context
+
+    def get_avaliacoes_plano_trabalho(self):
+        """
+        Retorna um queryset com todas as avaliações da chefia
+        associadas a um plano de trabalho aprovado pela CIGT
+        ordenadas por período
+        """
+        avaliacoes = AvaliacaoChefia.objects.filter(
+            encaminhamento_avaliacao_cigt__despacho_cigt=self
+        ).order_by('encaminhamento_avaliacao_cigt__ano_avaliacao', 'encaminhamento_avaliacao_cigt__mes_avaliacao')
+        return avaliacoes
+
+    def create_volume(self) -> None:
+        """
+        Método que cria o volume com todas as informações
+        associadas a um plano de trabalho aprovado.
+        """
+        obj_list = []
+        plano_trabalho = self.plano_trabalho
+        manifestacao = self.plano_trabalho.manifestacao
+        declaracao = DeclaracaoNaoEnquadramentoVedacoes.objects.get(
+            manifestacao=manifestacao)
+        obj_list.append(declaracao)
+        if AutorizacoesExcecoes.objects.filter(declaracao=declaracao):
+            autorizacao_excecao = AutorizacoesExcecoes.objects.get(
+                declaracao=declaracao)
+            obj_list.append(autorizacao_excecao)
+        obj_list.append(plano_trabalho)
+
+        # avaliações
+        avaliacoes = self.get_avaliacoes_plano_trabalho()
+        if avaliacoes:
+            [obj_list.append(avaliacao) for avaliacao in avaliacoes]
+
+        [obj.render_docx_tpl('docx') for obj in obj_list]
+        file_list = [obj.docx.path for obj in obj_list]
+
+        filename_final_temp = os.path.join(
+            settings.TEMP_FOLDER_ROOT, 'volume.docx'
+        )
+
+        combine_docx(filename_initial=manifestacao.docx.path,
+                     file_list=file_list, filename_final=filename_final_temp)
+
+        with open(filename_final_temp, 'rb') as f:
+            filename = f'Volume-ParecerCIGT {self.numeracao}-{self.ano}-{self.plano_trabalho.manifestacao.lotacao_servidor.servidor}.docx'
+            self.volume_docx = File(f, name=filename)
+            self.save()
+
+        # os.remove(filename_final_temp)
 
     def __str__(self) -> str:
         return f"Parecer CIGT n.{self.numeracao}-{self.ano}-{self.plano_trabalho.manifestacao.lotacao_servidor.servidor}"
@@ -1577,10 +1638,9 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
         context = {
             # manifestacao interesse
             'data': self.get_date(),
-            'unidade': self.despacho_cigt.plano_trabalho.manifestacao.unidade,
-            'setor': self.despacho_cigt.plano_trabalho.manifestacao.setor,
+            'unidade': self.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho.setor.unidade,
+            'setor': self.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho.setor,
             'servidor': self.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor,
-            'funcao': self.despacho_cigt.plano_trabalho.manifestacao.funcao,
             # declaracao de nao enquadramento nas vedacoes
             'estagio_probatorio': self.get_last_declaracao_nao_enquadramento().estagio_probatorio,
             'cargo_chefia_direcao': self.get_last_declaracao_nao_enquadramento().cargo_chefia_direcao,
@@ -1589,10 +1649,9 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
             # aprovacao gabinete
             'aprovado_gabinete': AutorizacoesExcecoes.objects.filter(declaracao=self.get_last_declaracao_nao_enquadramento()),
             # plano trabalho
-            'posto_trabalho': self.despacho_cigt.plano_trabalho.manifestacao.posto_trabalho,
-            'chefia_imediata': self.despacho_cigt.plano_trabalho.manifestacao.chefia_imediata,
-            'funcao_chefia': self.despacho_cigt.plano_trabalho.manifestacao.funcao_chefia,
-            'posto_trabalho_chefia': self.despacho_cigt.plano_trabalho.manifestacao.posto_trabalho_chefia,
+            'posto_trabalho': self.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho,
+            'chefia_imediata': self.despacho_cigt.plano_trabalho.manifestacao.lotacao_chefia.servidor,
+            'posto_trabalho_chefia': self.despacho_cigt.plano_trabalho.manifestacao.lotacao_chefia.posto_trabalho,
             'periodos_teletrabalho': self.get_periodos_teletrabalho(),
             'periodo_comparecimento': self.despacho_cigt.plano_trabalho.periodo_comparecimento,
             'periodo_acionamento': self.despacho_cigt.plano_trabalho.periodo_acionamento,
@@ -1946,7 +2005,7 @@ class AvaliacaoChefia(BaseModelGeneral):
         return context
 
     def __str__(self):
-        return f'Avaliação {self.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor}'
+        return f'Avaliação {self.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor} {self.encaminhamento_avaliacao_cigt.ano_avaliacao}-{self.encaminhamento_avaliacao_cigt.mes_avaliacao}'
 
     class Meta:
         verbose_name = 'Avaliação da Chefia'
