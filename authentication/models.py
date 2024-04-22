@@ -68,15 +68,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         """
         return {group.name for group in self.groups.all()}
 
-    # def check_dados(self):
-    #     _DADOS = ('ramal', 'celular', 'email', 'cidade')
-    #     missing_data = []
-    #     for d in _DADOS:
-    #         dado = getattr(self, d)
-    #         if not dado:
-    #             missing_data.append(d)
-    #     return missing_data
-
     def get_dict(self):
         """
         Método que retorna um dicionário com chave/valor
@@ -87,10 +78,6 @@ class User(AbstractBaseUser, PermissionsMixin):
             'nome': self.nome,
             'rg': self.rg,
             'cargo': self.cargo,
-            # 'ramal': self.ramal,
-            # 'celular': self.celular,
-            # 'email': self.email,
-            # 'cidade': self.cidade,
             'is_staff': self.is_staff,
             'is_active': self.is_active,
             'date_joined': self.date_joined,

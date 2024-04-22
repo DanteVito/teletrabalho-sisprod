@@ -6,7 +6,7 @@ from contrib.data_migrate import (create_chefias,
                                   create_unidades, create_users, migrate)
 from render.models import (ListaAtividades,
                            ListaIndicadoresMetricasTeletrabalho,
-                           ListaSistemasTeletrabalho, ModeloDocumento, Unidade)
+                           ListaSistemasTeletrabalho, ModeloDocumento)
 
 
 class Command(BaseCommand):
@@ -50,8 +50,8 @@ class Command(BaseCommand):
                 print(f'[modelo existente] {modelo.nome_modelo}')
 
         # unidades, setores, postos de trabalho
-        create_unidades()
-        create_setores_postos_trabalho()
+        create_unidades('contrib/data/postos_de_trabalho.txt')
+        create_setores_postos_trabalho('contrib/data/postos_de_trabalho.txt')
         create_chefias('contrib/data/lista_chefias.txt')
 
         # lista de atividades

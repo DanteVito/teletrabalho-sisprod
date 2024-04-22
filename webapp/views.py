@@ -340,41 +340,41 @@ def declaracao_nao_enquadramento_create(request):
             if DeclaracaoNaoEnquadramentoVedacoes.objects.filter(manifestacao=manifestacao):
                 messages.info(
                     request, 'Não é possível cadastrar mais de uma Declaração para mesma Manifestação de Interesse!')
-#                 return redirect(reverse('webapp:declaracao_nao_enquadramento'))
+                return redirect(reverse('webapp:declaracao_nao_enquadramento'))
 
-#             obj.adicionado_por = request.user
-#             obj.modificado_por = request.user
-#             modelo_aprovacao_excecao = ModeloDocumento.objects.get(nome_modelo="APROVACAO EXCECAO DIRETOR")  # noqa E501
-#             modelo_declaracao = ModeloDocumento.objects.get(
-#                 nome_modelo='DECLARACAO NAO ENQUADRAMENTO VEDACOES')
-#             obj.modelo = modelo_declaracao
+            obj.adicionado_por = request.user
+            obj.modificado_por = request.user
+            modelo_aprovacao_excecao = ModeloDocumento.objects.get(nome_modelo="APROVACAO EXCECAO DIRETOR")  # noqa E501
+            modelo_declaracao = ModeloDocumento.objects.get(
+                nome_modelo='DECLARACAO NAO ENQUADRAMENTO VEDACOES')
+            obj.modelo = modelo_declaracao
 
-#             lotacao_servidor = Lotacao.objects.filter(
-#                 servidor__user=request.user).last()
+            lotacao_servidor = Lotacao.objects.filter(
+                servidor__user=request.user).last()
 
-#             if not obj.cargo_chefia_direcao or lotacao_servidor.posto_trabalho.chefia:
-#                 if not obj.justificativa_excecao:
-#                     messages.info(
-#                         request, "É necessário preencher a justificativa para exceção de teletrabalho das chefias!")
-#                     return redirect(reverse('webapp:declaracao_nao_enquadramento_create'))
-#                 obj.save()
-#                 if not AutorizacoesExcecoes.objects.filter(declaracao=obj):
-#                     AutorizacoesExcecoes.objects.create(
-#                         declaracao=obj, modelo=modelo_aprovacao_excecao)
-#             else:
-#                 obj.save()
-#             messages.info(request, "Declaração cadastrada com sucesso!")
-#             return redirect(reverse('webapp:declaracao_nao_enquadramento'))
+            if not obj.cargo_chefia_direcao or lotacao_servidor.posto_trabalho.chefia:
+                if not obj.justificativa_excecao:
+                    messages.info(
+                        request, "É necessário preencher a justificativa para exceção de teletrabalho das chefias!")
+                    return redirect(reverse('webapp:declaracao_nao_enquadramento_create'))
+                obj.save()
+                if not AutorizacoesExcecoes.objects.filter(declaracao=obj):
+                    AutorizacoesExcecoes.objects.create(
+                        declaracao=obj, modelo=modelo_aprovacao_excecao)
+            else:
+                obj.save()
+            messages.info(request, "Declaração cadastrada com sucesso!")
+            return redirect(reverse('webapp:declaracao_nao_enquadramento'))
 
-#         for _, error_list in form.errors.items():
-#             for e in error_list:
-#                 messages.error(request, e)
+        for _, error_list in form.errors.items():
+            for e in error_list:
+                messages.error(request, e)
 
-#     context = {
-#         'tipo_form': 'create',
-#         'form': form
-#     }
-#     return render(request, 'webapp/pages/declaracao-nao-enquadramento-form.html', context)
+    context = {
+        'tipo_form': 'create',
+        'form': form
+    }
+    return render(request, 'webapp/pages/declaracao-nao-enquadramento-form.html', context)
 
 
 # @login_required

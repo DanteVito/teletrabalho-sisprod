@@ -18,7 +18,7 @@ def strip_remove_ponctuation(s: str) -> str:
     return s
 
 
-def create_unidades(file='contrib/data/postos_de_trabalho.txt') -> None:
+def create_unidades(file: str) -> None:
     unidades_set = set()
     with open(file, 'r', encoding='utf-8') as f:
         for line in f:
@@ -40,7 +40,7 @@ def create_unidades(file='contrib/data/postos_de_trabalho.txt') -> None:
         Unidade.objects.update_or_create(**data_unidade)
 
 
-def create_setores_postos_trabalho(file='contrib/data/postos_de_trabalho.txt') -> None:
+def create_setores_postos_trabalho(file: str) -> None:
     with open(file, 'r', encoding='utf-8') as f:
         for line in f:
             data_line = line.split('\t')
@@ -194,7 +194,7 @@ def create_chefias(file: str) -> None:
                 posto=posto_posto_trabalho_chefia
             )
 
-            chefia, created = Chefia.objects.update_or_create(
+            _, created = Chefia.objects.update_or_create(
                 posto_trabalho=posto_trabalho_servidor,
                 posto_trabalho_chefia=posto_trabalho_chefia
             )
@@ -210,23 +210,3 @@ def migrate(file: str, model, field: str) -> None:
             data = {field: value.strip()}
             obj, _ = model.objects.update_or_create(**data)
             print(obj)
-
-
-# def migrate_setores_postos_de_trabalho(file: str) -> None:
-#     with open(file, 'r', encoding='utf-8') as f:
-#         sectors = set()
-#         for line in f:
-#             values = line.strip().split('\t')
-#             data_posto = {
-#                 'setor': values[0].strip().replace('/', '-'),
-#                 'posto': values[1].strip(),
-#                 'tipo': values[2].strip(),
-#             }
-#             posto_de_trabalho, _ = PostosTrabalho.objects.update_or_create(  # noqa E501
-#                 **data_posto)
-#             print(posto_de_trabalho)
-#             sectors.add(values[0].replace('/', '-'))
-
-#     for sector in sectors:
-#         data_setor = {'nome': sector}
-#         Setor.objects.update_or_create(**data_setor)

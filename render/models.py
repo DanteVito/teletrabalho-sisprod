@@ -456,52 +456,7 @@ class ManifestacaoInteresse(BaseModelGeneral):
     justificativa_chefia = models.TextField()
 
     def __str__(self) -> str:
-        return f'manifestação id:{self.id} | criação:{self.data_criacao.strftime("%d/%m/%Y")}'
-
-    # @classmethod
-    # def get_manifestacoes_subordinados(cls, chefia_imediata):
-    #     """
-    #     Método que retorna todas as manifestações de interesse
-    #     para uma chefia imediata
-    #     """
-    #     return cls.objects.filter(chefia_imediata=chefia_imediata)
-
-    # def clean(self):
-    #     # bloqueia a edicao depois que a manifestacao for aprovada ou reprovada
-    #     try:
-    #         manifestacao_old = ManifestacaoInteresse.objects.get(id=self.id)
-    #         if manifestacao_old.aprovado_chefia:
-    #             raise ValidationError(
-    #                 "Não é possível editar uma Manifestação de Interesse já aprovada/reprovada pela Chefia Imediata!")
-    #     except ObjectDoesNotExist:
-    #         ...
-
-    #     # servidor
-    #     if not self.servidor.ramal:
-    #         raise ValidationError(
-    #             "Preecha o campo 'Ramal' no cadastro do usuário (servidor)")
-    #     if not self.servidor.celular:
-    #         raise ValidationError(
-    #             "Preecha o campo 'Celular' no cadastro do usuário (servidor)")
-    #     if not self.servidor.email:
-    #         raise ValidationError(
-    #             "Preecha o campo 'E-mail' no cadastro do usuário (servidor)")
-    #     if not self.servidor.cidade:
-    #         raise ValidationError(
-    #             "Preecha o campo 'Cidade' no cadastro do usuário (servidor)")
-    #     # chefia
-    #     if not self.chefia_imediata.ramal:
-    #         raise ValidationError(
-    #             "Preecha o campo 'Ramal' no cadastro do usuário (chefia imediata)")
-    #     if not self.chefia_imediata.celular:
-    #         raise ValidationError(
-    #             "Preecha o campo 'Celular' no cadastro do usuário (chefia imediata)")
-    #     if not self.chefia_imediata.email:
-    #         raise ValidationError(
-    #             "Preecha o campo 'E-mail' no cadastro do usuário (chefia imediata)")
-    #     if not self.chefia_imediata.cidade:
-    #         raise ValidationError(
-    #             "Preecha o campo 'Cidade' no cadastro do usuário (chefia imediata)")
+        return f'Manifestação id:{self.id} | {self.lotacao_servidor.servidor} | criação:{self.data_criacao.strftime("%d/%m/%Y")}'
 
     def get_context_docx(self):
         context = {

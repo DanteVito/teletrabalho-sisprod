@@ -1,14 +1,9 @@
 import os
-from typing import Any
 from zipfile import ZipFile
 
 from django.conf import settings
 from django.contrib import admin
-from django.contrib.auth.models import Group
-from django.db.models.query import QuerySet
 from django.http import HttpResponse, HttpResponseBadRequest
-from django.http.request import HttpRequest
-from unidecode import unidecode
 
 from authentication.models import User
 
@@ -120,82 +115,19 @@ def publica_doe(modeladmin, request, queryset):
 
 
 class ManifestacaoInteresseAdmin(admin.ModelAdmin):
-    list_display = ('lotacao_servidor', 'data_criacao', 'aprovado_chefia', 'adicionado_por', 'modificado_por')  # noqa E501
+    list_display = ('id', 'unidade', 'setor', 'lotacao_servidor', 'data_criacao', 'aprovado_chefia', 'adicionado_por', 'modificado_por')  # noqa E501
     actions = (generate_docx,)
-    fields = ('lotacao_servidor', 'aprovado_chefia')
-    # autocomplete_fields = (
-    #     'unidade', 'setor', 'posto_trabalho', 'posto_trabalho_chefia')
+    fields = ('lotacao_servidor', 'lotacao_chefia', 'aprovado_chefia',
+              'justificativa_chefia', 'adicionado_por', 'modificado_por', 'modelo', 'docx', 'pdf')
+    search_fields = ('lotacao_servidor__servidor__user__nome',
+                     'lotacao_servidor__servidor__user__rg', 'lotacao_servidor__servidor__user__username',)
+    ordering = ('-id', )
 
-    def save_model(self, request, obj, form, change) -> None:  # noqa E501
-        modelo = ModeloDocumento.objects.get(nome_modelo="MANIFESTACAO INTERESSE")  # noqa E501
-        obj.modelo = modelo
-        instance = form.save(commit=False)
-        if not hasattr(instance, 'adicionado_por'):
-            obj.adicionado_por = request.user
-        instance.modificado_por = request.user
-        return super().save_model(request, obj, form, change)
+    def unidade(self, obj) -> str:
+        return obj.lotacao_servidor.posto_trabalho.setor.unidade.nome
 
-    def delete_model(self, request, obj) -> None:
-        if obj.aprovado_chefia:
-            self.message_user(
-                request, "Não é possível apagar uma manifestação já aprovada pela chefia imediata", level='error')
-        else:
-            return super().delete_model(request, obj)
-
-    def delete_queryset(self, request, queryset) -> None:
-        for obj in queryset:
-            if obj.aprovado_chefia:
-                self.message_user(
-                    request, "Não é possível apagar uma manifestação já aprovada pela chefia imediata", level='error')
-                queryset = ManifestacaoInteresse.objects.none()
-        return super().delete_queryset(request, queryset)
-
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if request.user.groups.filter(name='CIGT'):
-            return super().formfield_for_foreignkey(db_field, request, **kwargs)
-        if request.user.groups.filter(name='GABINETE'):
-            return super().formfield_for_foreignkey(db_field, request, **kwargs)
-        if not request.user.is_superuser:
-            if db_field.name == 'servidor':
-                kwargs["queryset"] = User.objects.filter(id=request.user.id)  # noqa E501
-                if request.user.groups.filter(name='CHEFIAS'):
-                    manifestacoes_servidores = ManifestacaoInteresse.objects.filter(
-                        chefia_imediata=request.user)
-                    servidores_id = {
-                        p.servidor.id for p in manifestacoes_servidores}
-                    servidores_id.add(request.user.id)
-                    kwargs["queryset"] = User.objects.filter(
-                        pk__in=servidores_id)
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
-
-    def get_queryset(self, request):
-        if request.user.is_superuser:
-            return super().get_queryset(request)
-        if request.user.groups.filter(name='CIGT'):
-            return super().get_queryset(request)
-        if request.user.groups.filter(name='GABINETE'):
-            return super().get_queryset(request)
-        if request.user.groups.filter(name='CHEFIAS'):
-            if request.user.groups.filter(name='CHEFIAS'):
-                manifestacaoes_servidores = ManifestacaoInteresse.objects.filter(
-                    chefia_imediata=request.user)
-                manifestacaoes_servidores_id = {
-                    p.id for p in manifestacaoes_servidores}
-                manifestacoes_chefia = ManifestacaoInteresse.objects.filter(
-                    servidor=request.user)
-                for m in manifestacoes_chefia:
-                    manifestacaoes_servidores_id.add(m.id)
-                queryset = ManifestacaoInteresse.objects.filter(
-                    pk__in=manifestacaoes_servidores_id)
-            return queryset
-        queryset = ManifestacaoInteresse.objects.filter(adicionado_por=request.user)  # noqa E501
-        return queryset
-
-    def get_readonly_fields(self, request, obj):
-        if obj is not None:
-            if obj.chefia_imediata == request.user:
-                return ()
-        return ('aprovado_chefia',)
+    def setor(self, obj) -> str:
+        return obj.lotacao_servidor.posto_trabalho.setor.nome
 
 
 class DeclaracaoNaoEnquadramentoVedacoesAdmin(admin.ModelAdmin):
