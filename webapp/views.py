@@ -280,6 +280,13 @@ def manifestacao_interesse_aprovado_chefia(request, pk):
 
 @login_required
 def declaracao_nao_enquadramento(request):
+    last_manifestacao = ManifestacaoInteresse.objects.filter(
+        lotacao_servidor__servidor__user=request.user).last()
+    if not last_manifestacao:
+        messages.info(
+            request, "É necessário ter a Manifestação de Interesse cadastrada antes de Preencher a Declaração de Não Enquadramento nas Vedações!")
+        return redirect(reverse('webapp:manifestacao_interesse'))
+
     servidor = Servidor.objects.get(user=request.user)
     check_dados = servidor.check_dados()
     if check_dados:
@@ -311,6 +318,13 @@ def declaracao_nao_enquadramento(request):
 
 @login_required
 def declaracao_nao_enquadramento_create(request):
+    last_manifestacao = ManifestacaoInteresse.objects.filter(
+        lotacao_servidor__servidor__user=request.user).last()
+    if not last_manifestacao:
+        messages.info(
+            request, "É necessário ter a Manifestação de Interesse cadastrada antes de Preencher a Declaração de Não Enquadramento nas Vedações!")
+        return redirect(reverse('webapp:manifestacao_interesse'))
+
     form = DeclaracaoNaoEnquadramentoVedacoesForm(user=request.user)
     if request.method == 'POST':
         form = DeclaracaoNaoEnquadramentoVedacoesForm(
@@ -396,11 +410,10 @@ def declaracao_nao_enquadramento_create(request):
 #             for e in error_list:
 #                 messages.error(request, e)
 
-#     context = {
-#         'tipo_form': 'edit',
-#         'form': form
-#     }
-#     return render(request, 'webapp/pages/declaracao-nao-enquadramento-form.html', context)
+    context = {
+        'form': form
+    }
+    return render(request, 'webapp/pages/declaracao-nao-enquadramento-form.html', context)
 
 
 @login_required

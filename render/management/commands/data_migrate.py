@@ -1,7 +1,8 @@
 from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand
 
-from contrib.data_migrate import (create_setores_postos_trabalho,
+from contrib.data_migrate import (create_chefias,
+                                  create_setores_postos_trabalho,
                                   create_unidades, create_users, migrate)
 from render.models import (ListaAtividades,
                            ListaIndicadoresMetricasTeletrabalho,
@@ -51,6 +52,7 @@ class Command(BaseCommand):
         # unidades, setores, postos de trabalho
         create_unidades()
         create_setores_postos_trabalho()
+        create_chefias('contrib/data/lista_chefias.txt')
 
         # lista de atividades
         migrate('contrib/data/lista_atividades.txt',
