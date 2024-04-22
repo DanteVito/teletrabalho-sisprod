@@ -85,11 +85,35 @@
 
         
     {% elif tipo_form == 'edit' %}
-        <div class="periodos-edit">
+
+        <div id="periodos-edit" class="periodos-edit">
             {% for periodo in periodos_teletrabalho %}
                 <p><a href="{% url 'webapp:periodo_teletrabalho' periodo.pk %}">{{ periodo }} plano_trabalho_id: {{ periodo.plano_trabalho_id }} período_id: {{ periodo.id}}</a> - <a href="{% url 'webapp:periodo_teletrabalho_delete' periodo.pk %}">excluir</a></p>
             {% endfor %}
         </div>
+
+    <!-- adicionar períodos na edição -->
+
+    <!-- htmx -->
+
+ 
+        <div class="field">
+            {{ form_add_periodo.plano_trabalho }}
+        </div>
+        <div class="field">
+            <label class="label">Data Inicial</label>
+            {{ form_add_periodo.data_inicio }}
+        </div>
+
+        <div class="field">
+            <label class="label">Data Final</label>
+            <div class="control">
+            {{ form_add_periodo.data_fim }}
+            </div>
+        </div>
+
+    
+    <a id="buttonAddPeriodo" hx-post={% url 'webapp:htmx_adiciona_periodo_edit' plano_trabalho.pk %} hx-target="#periodos-edit" hx-swap="outerHTML">Adicionar Período</a>
     
     {% endif %}
 

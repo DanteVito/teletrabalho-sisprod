@@ -609,13 +609,17 @@ def plano_trabalho_edit(request, pk):
     atividades_teletrabalho = AtividadesTeletrabalho.objects.filter(
         periodo__in=periodos_teletrabalho)
 
+    form_add_periodo = PeriodoTeletrabalhoForm()
+
     context = {
         'tipo_form': 'edit',
         'periodos_teletrabalho': periodos_teletrabalho,
         'form': form,
+        'form_add_periodo': form_add_periodo,
         'periodos_formset': periodos_formset,
         'periodos_teletrabalho': periodos_teletrabalho,
         'atividades_teletrabalho': atividades_teletrabalho,
+        'plano_trabalho': PlanoTrabalho.objects.get(pk=pk)
     }
     return render(request, 'webapp/pages/plano-trabalho-form.html', context)
 
@@ -1486,6 +1490,28 @@ def htmx_adiciona_periodo(request):
         'form': form,
     }
     return render(request, 'webapp/partials/add_periodo.html', context)
+
+
+@login_required
+def htmx_adiciona_periodo_edit(request, pk):
+    # pk : chave do plano de trabalho
+    if request.method == 'POST':
+        plano_trabalho = PlanoTrabalho.objects.get(pk=pk)
+        data_inicio = request.POST.get('data_inicio')
+        data_fim = request.POST.get('data_fim')
+        PeriodoTeletrabalho.objects.create(
+            plano_trabalho=plano_trabalho,
+            data_inicio=data_inicio,
+            data_fim=data_fim
+        )
+
+    periodos_teletrabalho = PeriodoTeletrabalho.objects.filter(
+        plano_trabalho=plano_trabalho)
+
+    context = {
+        'periodos_teletrabalho': periodos_teletrabalho,
+    }
+    return render(request, 'webapp/partials/add_periodo_edit.html', context)
 
 
 @login_required
