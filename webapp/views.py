@@ -1,6 +1,6 @@
 import calendar
 import os
-from datetime import date
+from datetime import date, datetime
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -29,7 +29,8 @@ from render.models import (AlterarAvaliacaoChefia, AtividadesTeletrabalho,
                            AutorizacoesExcecoes, AvaliacaoChefia, Chefia,
                            ComissaoInterna, ControleMensalTeletrabalho,
                            DeclaracaoNaoEnquadramentoVedacoes,
-                           DespachoCIGTPlanoTrabalho, Lotacao,
+                           DespachoCIGTPlanoTrabalho, ListaAtividades,
+                           ListaIndicadoresMetricasTeletrabalho, Lotacao,
                            ManifestacaoInteresse, ModeloDocumento, Numeracao,
                            PeriodoTeletrabalho, PlanoTrabalho,
                            PortariasPublicadasDOE, PostosTrabalho,
@@ -586,7 +587,7 @@ def plano_trabalho_edit(request, pk):
     periodos_formset = PeriodoTeletrabalhoFormSet()
     if request.method == 'POST':
         form = PlanoTrabalhoForm(
-            request.POST, instance=instance, user=instance.manifestacao.servidor)
+            request.POST, instance=instance, user=instance.manifestacao.lotacao_servidor.servidor.user)
         if form.is_valid():
             obj = form.save(commit=False)
             obj.modificado_por = request.user
@@ -610,12 +611,14 @@ def plano_trabalho_edit(request, pk):
         periodo__in=periodos_teletrabalho)
 
     form_add_periodo = PeriodoTeletrabalhoForm()
+    form_add_atividade = AtividadesTeletrabalhoForm()
 
     context = {
         'tipo_form': 'edit',
         'periodos_teletrabalho': periodos_teletrabalho,
         'form': form,
         'form_add_periodo': form_add_periodo,
+        'form_add_atividade': form_add_atividade,
         'periodos_formset': periodos_formset,
         'periodos_teletrabalho': periodos_teletrabalho,
         'atividades_teletrabalho': atividades_teletrabalho,
@@ -1499,19 +1502,63 @@ def htmx_adiciona_periodo_edit(request, pk):
         plano_trabalho = PlanoTrabalho.objects.get(pk=pk)
         data_inicio = request.POST.get('data_inicio')
         data_fim = request.POST.get('data_fim')
-        PeriodoTeletrabalho.objects.create(
+
+        # normaliza o período informado criando um objeto
+        # para cada mês e deixando o período com o primeiro
+        # e o último dia de cada mês
+
+        periodo_salvo = PeriodoTeletrabalho(
             plano_trabalho=plano_trabalho,
-            data_inicio=data_inicio,
-            data_fim=data_fim
+            data_inicio=datetime.strptime(data_inicio, '%Y-%m-%d'),
+            data_fim=datetime.strptime(data_fim, '%Y-%m-%d'),
         )
+
+        periodo_salvo_set = set()
+
+        for data_inicio in periodo_salvo.year_months_periodo():
+            periodo_salvo_set.add(data_inicio)
+
+        periodos_salvos = list(periodo_salvo_set)
+        periodos_salvos.sort()
+
+        for data_inicio in periodos_salvos:
+            last_day_month = calendar.monthrange(
+                data_inicio.year, data_inicio.month)[1]
+            data_fim = date(data_inicio.year,
+                            data_inicio.month, last_day_month)
+            periodo = PeriodoTeletrabalho.objects.create(
+                plano_trabalho=plano_trabalho,
+                data_inicio=data_inicio,
+                data_fim=data_fim
+            )
+
+            # associa as atividades já criadas no primeiro período
+            first_periodo = PeriodoTeletrabalho.objects.filter(
+                plano_trabalho=plano_trabalho).first()
+
+            atividades_teletrabalho_first_periodo = AtividadesTeletrabalho.objects.filter(
+                periodo=first_periodo)
+
+            for atividade in atividades_teletrabalho_first_periodo:
+                AtividadesTeletrabalho.objects.create(
+                    periodo=periodo,
+                    atividade=atividade.atividade,
+                    meta_qualitativa=atividade.meta_qualitativa,
+                    tipo_meta_quantitativa=atividade.tipo_meta_quantitativa,
+                    meta_quantitativa=atividade.meta_quantitativa
+                )
 
     periodos_teletrabalho = PeriodoTeletrabalho.objects.filter(
         plano_trabalho=plano_trabalho)
 
+    atividades_teletrabalho = AtividadesTeletrabalho.objects.filter(
+        periodo__plano_trabalho=plano_trabalho)
+
     context = {
         'periodos_teletrabalho': periodos_teletrabalho,
+        'atividades_teletrabalho': atividades_teletrabalho,
     }
-    return render(request, 'webapp/partials/add_periodo_edit.html', context)
+    return render(request, 'webapp/partials/add_periodo_atividade_edit.html', context)
 
 
 @login_required
@@ -1521,3 +1568,39 @@ def htmx_adiciona_atividade(request):
         'form': form,
     }
     return render(request, 'webapp/partials/add_atividade.html', context)
+
+
+@login_required
+def htmx_adiciona_atividade_edit(request, pk):
+    # pk : chave do plano de trabalho
+    plano_trabalho = PlanoTrabalho.objects.get(pk=pk)
+
+    if request.method == 'POST':
+        periodos = PeriodoTeletrabalho.objects.filter(
+            plano_trabalho=plano_trabalho)
+        for periodo in periodos:
+            atividade = ListaAtividades.objects.get(
+                id=request.POST.get('atividade')
+            )
+            tipo_meta_quantitativa = ListaIndicadoresMetricasTeletrabalho.objects.get(
+                id=request.POST.get('tipo_meta_quantitativa')
+            )
+            AtividadesTeletrabalho.objects.create(
+                periodo=periodo,
+                atividade=atividade,
+                meta_qualitativa=request.POST.get('meta_qualitativa'),
+                tipo_meta_quantitativa=tipo_meta_quantitativa,
+                meta_quantitativa=request.POST.get('meta_quantitativa')
+            )
+
+    periodos_teletrabalho = PeriodoTeletrabalho.objects.filter(
+        plano_trabalho=plano_trabalho)
+
+    atividades_teletrabalho = AtividadesTeletrabalho.objects.filter(
+        periodo__plano_trabalho=plano_trabalho)
+
+    context = {
+        'periodos_teletrabalho': periodos_teletrabalho,
+        'atividades_teletrabalho': atividades_teletrabalho,
+    }
+    return render(request, 'webapp/partials/add_periodo_atividade_edit.html', context)

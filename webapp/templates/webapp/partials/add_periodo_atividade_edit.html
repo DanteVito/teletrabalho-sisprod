@@ -1,0 +1,12 @@
+<div id="periodos-atividades-edit" class="periodos-atividades-edit">
+{% for periodo in periodos_teletrabalho %}
+    <p><a href="{% url 'webapp:periodo_teletrabalho' periodo.pk %}">{{ periodo }} plano_trabalho_id: {{ periodo.plano_trabalho_id }} período_id: {{ periodo.id}}</a> - <a href="{% url 'webapp:periodo_teletrabalho_delete' periodo.pk %}">excluir</a></p>
+{% endfor %}
+
+<hr>
+
+<h3 class="title is-5"> Atividades </h3>
+{% for atividade in atividades_teletrabalho %}
+<p><a href="{% url 'webapp:atividade_teletrabalho' atividade.pk %}">{{ atividade }} - período_id: {{ atividade.periodo_id }} - atividade_id {{ atividade.id }}</a> - <a href="{% url 'webapp:atividade_teletrabalho_delete' atividade.pk %}">excluir</a></p>
+{% endfor %}
+</div>

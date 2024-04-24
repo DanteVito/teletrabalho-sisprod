@@ -126,5 +126,6 @@ urlpatterns = [
          name='htmx_adiciona_periodo_edit'),
     path('htmx-adiciona-atividade', views.htmx_adiciona_atividade,
          name='htmx_adiciona_atividade'),
-
+    path('htmx-adiciona-atividade-edit/<int:pk>', views.htmx_adiciona_atividade_edit,
+         name='htmx_adiciona_atividade_edit'),
 ]

@@ -812,8 +812,8 @@ class PeriodoTeletrabalho(models.Model):
     data_fim = models.DateField(null=True, blank=True)
 
     def __str__(self):
-        str_data_inicio = datetime.strftime(self.data_inicio, '%d/%m/%Y')
-        str_data_fim = datetime.strftime(self.data_fim, '%d/%m/%Y')
+        str_data_inicio = date.strftime(self.data_inicio, '%d/%m/%Y')
+        str_data_fim = date.strftime(self.data_fim, '%d/%m/%Y')
         return f'{str_data_inicio} a {str_data_fim}'
 
     def clean(self):
@@ -846,7 +846,8 @@ class PeriodoTeletrabalho(models.Model):
     def year_months_periodo(self):
         """
         Este método retorna uma lista com objetos datetime
-        para cada mês entre a data_inicio e data_fim do período.
+        para cada mês entre a data_inicio e data_fim do período contendo
+        a data inicial de cada um desses meses.
         """
         year_months = list()
         for month in range(self.data_inicio.month, self.data_fim.month + 1):
@@ -890,7 +891,7 @@ class AtividadesTeletrabalho(models.Model):
     atividade = models.ForeignKey(ListaAtividades, related_name="%(app_label)s_%(class)s_atividade", on_delete=models.SET_NULL, null=True, blank=True)  # noqa E501
     meta_qualitativa = models.CharField(max_length=255, default='---', null=True, blank=True)  # noqa E501
     tipo_meta_quantitativa = models.ForeignKey(ListaIndicadoresMetricasTeletrabalho, related_name="%(app_label)s_%(class)s_metrica", on_delete=models.SET_NULL, null=True, blank=True)  # noqa E501
-    meta_quantitativa = models.CharField(max_length=255)
+    meta_quantitativa = models.CharField(max_length=255, null=True, blank=True)
     cumprimento = models.CharField(
         max_length=36, choices=_CHOICES, blank=True, null=True)
     justificativa_nao_cumprimento = models.TextField(blank=True, null=True)
