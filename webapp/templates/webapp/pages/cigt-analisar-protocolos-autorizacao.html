@@ -17,6 +17,7 @@
                 <th>Despacho CIGT</th>
                 <th>Publicado DOE</th>
                 <th>SID</th>
+                <th>Volume</th>
             </tr>
         </thead>
         <tbody>
@@ -26,6 +27,7 @@
                     <td><a href={% url "webapp:download_docx" "despacho-cigt-plano-trabalho" protocolo.despacho_cigt.id %}>{{ protocolo.despacho_cigt }}</a></td>
                     <td>{{ protocolo.publicado_doe }}</td>
                     <td><a href="{% url 'webapp:protocolo_autorizacao_teletrabalho_edit' protocolo.pk %}">{% if protocolo.sid %}{{ protocolo.sid }}{% else %}CADASTRAR{% endif %}</a></td>
+                    <td><a href={% url 'webapp:download_docx' "volume" protocolo.despacho_cigt.id %}>baixar</a></td>
                 </tr>
             {% endfor %}
         </tbody>

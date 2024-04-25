@@ -1470,11 +1470,20 @@ def download_docx(request, model, pk):
         elif model == 'despacho-cigt-plano-trabalho':
             obj = DespachoCIGTPlanoTrabalho.objects.get(pk=pk)
             nome_arquivo = 'despacho_cigt_plano_trabalho'
+        elif model == 'volume':
+            obj = DespachoCIGTPlanoTrabalho.objects.get(pk=pk)
+            nome_arquivo = 'volume_processo'
+            obj.create_volume()
+            with open(obj.volume_docx.path, 'rb') as fh:
+                response = HttpResponse(fh.read(), content_type='application/docx')  # noqa E501
+                response['Content-Disposition'] = f'filename={obj.gerar_nome_arquivo(nome_arquivo)}'  # noqa E501
+                return response
         else:
             return HttpResponseBadRequest("tipo-incorreto-arquivo")
         try:
             if os.path.exists(obj.docx.path):
-                ...
+                messages.info(request, 'Gerando novo arquivo!')
+                obj.render_docx_tpl(tipo_doc=nome_arquivo)
         except ValueError:
             obj.render_docx_tpl(tipo_doc=nome_arquivo)
 
