@@ -8,19 +8,20 @@ use:
 > python contrib/env_gen.py
 
 """
+
 import random
 
-chars = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ!?@#$%^&*()"
-size = 50
-secret_key = "".join(random.sample(chars, size))
+CHARS = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ!?@#$%^&*()"
+SIZE = 50
+SECRET_KEY = "".join(random.sample(CHARS, SIZE))
 
-chars = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ!?@#$%_"
-size = 20
-password = "".join(random.sample(chars, size))
+CHARS = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ!?@#$%_"
+SIZE = 20
+PASSWORD = "".join(random.sample(CHARS, SIZE))
 
-chars = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ!?@#$%_"
-size = 8
-admin = "".join(random.sample(chars, size))
+CHARS = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ!?@#$%_"
+SIZE = 8
+PASSWORD_ADMIN = "".join(random.sample(CHARS, SIZE))
 
 CONFIG_STRING = """
 DEBUG=True
@@ -39,12 +40,16 @@ CSRF_TRUSTED_ORIGINS=http://localhost
 #EMAIL_HOST_USER=
 #EMAIL_HOST_PASSWORD=
 #EMAIL_USE_TLS=True
-ADMIN=%s
-""".strip() % (secret_key, password, admin)
+PASSWORD_ADMIN=%s
+""".strip() % (
+    SECRET_KEY,
+    PASSWORD,
+    PASSWORD_ADMIN,
+)
 
 # Writing our configuration file to '.env'
-with open('.env', 'w') as configfile:
+with open(".env", "w", encoding="utf-8") as configfile:
     configfile.write(CONFIG_STRING)
 
-print('Success!')
-print('Type: cat .env')
+print("Success!")
+print("Type: cat .env")

@@ -6,6 +6,9 @@ prettytable
 gunicorn
 unidecode
 flake8
+autopep8
+pylint
+pylint-django
 mypy
 psycopg2
 pytest

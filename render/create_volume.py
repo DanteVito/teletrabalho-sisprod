@@ -1,8 +1,12 @@
+import typing
+
 from docx import Document as Document_compose
 from docxcompose.composer import Composer
 
 
-def combine_docx(filename_initial: str, file_list: str, filename_final: str) -> None:
+def combine_docx(
+    filename_initial: str, file_list: typing.List, filename_final: str
+) -> None:
     """
     filename_initial: path arquivo inicial.
     filename_final: path arquivo final.

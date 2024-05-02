@@ -200,7 +200,7 @@
             {% endfor %}
         </div>
 
-    <a id="buttonAddAtividade" hx-get={% url "webapp:htmx_adiciona_atividade" %} hx-target="#periodos-atividades-edit" hx-swap="outerHTML">Adicionar Atividade</a>
+    <a id="buttonAddAtividade" hx-get={% url "webapp:htmx_adiciona_atividade" %} hx-target="#atividades" hx-swap="beforeend">Adicionar Atividade</a>
 
     {% endif %}
 
