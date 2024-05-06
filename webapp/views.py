@@ -21,7 +21,6 @@ from render.forms import (
     DeclaracaoNaoEnquadramentoVedacoesForm,
     LotacaoForm,
     ManifestacaoInteresseAprovadoChefiaForm,
-    ManifestacaoInteresseForm,
     PeriodoTeletrabalhoForm,
     PeriodoTeletrabalhoFormSet,
     PlanoTrabalhoForm,
@@ -31,7 +30,6 @@ from render.forms import (
     ProtocoloAutorizacaoTeletrabalhoAprovaForm,
     ProtocoloAutorizacaoTeletrabalhoForm,
     ServidorForm,
-    UserForm,
 )
 from render.models import (
     AlterarAvaliacaoChefia,
@@ -52,7 +50,6 @@ from render.models import (
     PeriodoTeletrabalho,
     PlanoTrabalho,
     PortariasPublicadasDOE,
-    PostosTrabalho,
     ProtocoloAutorizacaoTeletrabalho,
     Servidor,
 )
@@ -114,6 +111,7 @@ def manifestacao_interesse_create(request):
     manifestacoes = ManifestacaoInteresse.objects.filter(
         lotacao_servidor=lotacao_servidor
     )
+
     for m in manifestacoes:
         if m.aprovado_chefia is None:
             messages.info(
@@ -121,16 +119,21 @@ def manifestacao_interesse_create(request):
                 f"Não é possível cadastrar nova manifestação de interesse enquanto houver manifestação pendente de análise -> {m}!",
             )
             return redirect(reverse("webapp:manifestacao_interesse"))
+
     form = LotacaoForm(user=request.user, instance=lotacao_servidor)
+
     if request.method == "POST":
         form = LotacaoForm(request.POST, instance=lotacao_servidor, user=request.user)
         if form.is_valid():
             # verifica se já existe manifestação aprovada para aquele posto de trabalho e chefia imediata
             posto_trabalho_form = form.cleaned_data["posto_trabalho"]
-            lotacao_servidor = form.save(commit=False)
-            chefia = Chefia.objects.filter(
-                posto_trabalho=lotacao_servidor.posto_trabalho
-            ).last()
+
+            obj = form.save(commit=False)
+
+            if obj.servidor.user != request.user:
+                return HttpResponseBadRequest("proibido!")
+
+            chefia = Chefia.objects.filter(posto_trabalho=obj.posto_trabalho).last()
             if chefia:
                 posto_trabalho_chefia = chefia.posto_trabalho_chefia
                 lotacao_chefia = Lotacao.objects.filter(
@@ -142,7 +145,7 @@ def manifestacao_interesse_create(request):
                         f"Nenhum servidor cadastrado no posto de trabalho {posto_trabalho_chefia}!",
                     )
                     return redirect(reverse("webapp:manifestacao_interesse"))
-                if posto_trabalho_form == lotacao_servidor.posto_trabalho:
+                if posto_trabalho_form == obj.posto_trabalho:
                     for m in manifestacoes.filter(aprovado_chefia="aprovado"):
                         if m.lotacao_chefia == lotacao_chefia:
                             messages.info(
@@ -158,7 +161,7 @@ def manifestacao_interesse_create(request):
                 return redirect(reverse("webapp:manifestacao_interesse"))
 
             manifestacao = ManifestacaoInteresse(
-                lotacao_servidor=lotacao_servidor, lotacao_chefia=lotacao_chefia
+                lotacao_servidor=obj, lotacao_chefia=lotacao_chefia
             )
             manifestacao.adicionado_por = request.user
             manifestacao.modificado_por = request.user
@@ -180,76 +183,6 @@ def manifestacao_interesse_create(request):
 
 
 @login_required
-def manifestacao_interesse_edit(request, pk):
-    # garante que somente o proprio usuário possa
-    # editar a manifestação que ele cadastrou
-    try:
-        instance = ManifestacaoInteresse.objects.get(
-            pk=pk, lotacao_servidor__servidor__user=request.user
-        )
-    except ManifestacaoInteresse.DoesNotExist:
-        return HttpResponseBadRequest("")
-
-    lotacao_servidor = Lotacao.objects.get(servidor__user=request.user)
-    form = LotacaoForm(user=request.user, instance=lotacao_servidor)
-
-    if request.method == "POST":
-        form = LotacaoForm(request.POST, instance=lotacao_servidor, user=request.user)
-        if form.is_valid():
-            # escrever lógica que não altera a salva/altera a lotação do
-            # servidor se a chefia não estiver cadastrada
-            lotacao_servidor = form.save()
-            chefia = Chefia.objects.filter(
-                posto_trabalho=lotacao_servidor.posto_trabalho
-            ).last()
-
-            if chefia:
-                posto_trabalho_chefia = chefia.posto_trabalho_chefia
-                lotacao_chefia = Lotacao.objects.filter(
-                    posto_trabalho=posto_trabalho_chefia
-                ).last()
-                if not lotacao_chefia:
-                    messages.info(
-                        request,
-                        f"Nenhum servidor cadastrado no posto de trabalho {posto_trabalho_chefia}!",
-                    )
-                    return redirect(reverse("webapp:manifestacao_interesse"))
-            else:
-                messages.info(
-                    request, "Chefia Imediata ainda não cadastrada na tabela Chefias!"
-                )
-                return redirect(reverse("webapp:manifestacao_interesse"))
-
-            try:
-                ManifestacaoInteresse.objects.get(
-                    lotacao_servidor=lotacao_servidor, lotacao_chefia=lotacao_chefia
-                )
-
-            except ManifestacaoInteresse.DoesNotExist:
-                manifestacao = ManifestacaoInteresse(
-                    lotacao_servidor=lotacao_servidor, lotacao_chefia=lotacao_chefia
-                )
-                manifestacao.adicionado_por = request.user
-                manifestacao.modificado_por = request.user
-                manifestacao.modelo = ModeloDocumento.objects.get(
-                    nome_modelo="MANIFESTACAO INTERESSE"
-                )
-                manifestacao.save()
-            messages.info(request, "Manifestação alterada com sucesso!")
-            return redirect(reverse("webapp:manifestacao_interesse"))
-
-        for _, error_list in form.errors.items():
-            for e in error_list:
-                messages.error(request, e)
-
-    context = {
-        "tipo_form": "edit",
-        "form": form,
-    }
-    return render(request, "webapp/pages/manifestacao-interesse-form.html", context)
-
-
-@login_required
 def manifestacao_interesse_delete(request, pk):
     # garante que somente o proprio usuário possa
     # excluir a manifestação que ele cadastrou
@@ -258,7 +191,7 @@ def manifestacao_interesse_delete(request, pk):
             pk=pk, lotacao_servidor__servidor__user=request.user
         )
     except ManifestacaoInteresse.DoesNotExist:
-        return HttpResponseBadRequest()
+        return HttpResponseBadRequest("")
 
     if instance.aprovado_chefia:
         messages.warning(
@@ -283,11 +216,11 @@ def manifestacao_interesse_aprovado_chefia(request, pk):
             pk=pk, lotacao_chefia__servidor__user=request.user
         )
     except ManifestacaoInteresse.DoesNotExist:
-        return HttpResponseBadRequest("proibido")
+        return HttpResponseBadRequest("")
 
-    user = manifestacao.lotacao_servidor.servidor.user
+    user_servidor = manifestacao.lotacao_servidor.servidor.user
     form_instance_lotacao = LotacaoForm(
-        instance=manifestacao.lotacao_servidor, user=user
+        instance=manifestacao.lotacao_servidor, user=user_servidor
     )
 
     form = ManifestacaoInteresseAprovadoChefiaForm(instance=manifestacao)
@@ -322,6 +255,7 @@ def declaracao_nao_enquadramento(request):
     last_manifestacao = ManifestacaoInteresse.objects.filter(
         lotacao_servidor__servidor__user=request.user
     ).last()
+
     if not last_manifestacao:
         messages.info(
             request,
@@ -331,18 +265,21 @@ def declaracao_nao_enquadramento(request):
 
     servidor = Servidor.objects.get(user=request.user)
     check_dados = servidor.check_dados()
+
     if check_dados:
         return redirect(reverse("webapp:dados_cadastrais"))
+
     declaracoes = DeclaracaoNaoEnquadramentoVedacoes.objects.filter(
         manifestacao__lotacao_servidor__servidor=servidor
     )
     autorizacoes_excecoes = AutorizacoesExcecoes.objects.filter(
         declaracao__in=declaracoes
     )
-    pk_autorizacoes_excecoes = set([a.pk for a in autorizacoes_excecoes])
+
     pk_declaracoes_autorizacoes = set([a.declaracao.pk for a in autorizacoes_excecoes])
     pk_declaracoes = set([d.pk for d in declaracoes])
     pk_declaracoes_autorizadas = pk_declaracoes.difference(pk_declaracoes_autorizacoes)
+
     declaracoes_autorizadas = DeclaracaoNaoEnquadramentoVedacoes.objects.filter(
         pk__in=pk_declaracoes_autorizadas
     )
@@ -438,78 +375,15 @@ def declaracao_nao_enquadramento_create(request):
         request, "webapp/pages/declaracao-nao-enquadramento-form.html", context
     )
 
-    # @login_required
-    # def declaracao_nao_enquadramento_edit(request, pk):
-    #     # garante que somente o proprio usuário possa
-    #     # editar a declaração que ele cadastrou
-    #     try:
-    #         instance = DeclaracaoNaoEnquadramentoVedacoes.objects.get(
-    #             pk=pk, manifestacao__servidor=request.user)
-    #     except DeclaracaoNaoEnquadramentoVedacoes.DoesNotExist:
-    #         return HttpResponseBadRequest()
-
-    #     form = DeclaracaoNaoEnquadramentoVedacoesForm(
-    #         instance=instance, user=request.user)
-    #     if request.method == 'POST':
-    #         form = DeclaracaoNaoEnquadramentoVedacoesForm(
-    #             request.POST, instance=instance, user=request.user)
-    #         if form.is_valid():
-    #             obj = form.save(commit=False)
-    #             obj.modificado_por = request.user
-    #             obj.save()
-
-    #             if not obj.cargo_chefia_direcao:
-    #                 if not AutorizacoesExcecoes.objects.filter(declaracao=obj):
-    #                     modelo_aprovacao_excecao = ModeloDocumento.objects.get(nome_modelo="APROVACAO EXCECAO DIRETOR")  # noqa E501
-    #                     AutorizacoesExcecoes.objects.create(
-    #                         declaracao=obj, modelo=modelo_aprovacao_excecao)
-
-    #             messages.info(request, "Declaração alterada com sucesso!")
-    #             return redirect(reverse('webapp:declaracao_nao_enquadramento'))
-
-    #         for _, error_list in form.errors.items():
-    #             for e in error_list:
-    #                 messages.error(request, e)
-
-    context = {"form": form}
-    return render(
-        request, "webapp/pages/declaracao-nao-enquadramento-form.html", context
-    )
-
-
-@login_required
-def declaracao_nao_enquadramento_delete(request, pk):
-    # garante que apenas o próprio usuário possa
-    # deletar a declaração que ele criou.
-    try:
-        instance = DeclaracaoNaoEnquadramentoVedacoes.objects.get(
-            pk=pk, manifestacao__servidor=request.user
-        )
-    except DeclaracaoNaoEnquadramentoVedacoes.DoesNotExist:
-        return HttpResponseBadRequest()
-
-    try:
-        AutorizacoesExcecoes.objects.get(declaracao=instance)
-        messages.warning(
-            request,
-            "Não é possível excluir a Declaração de Não Enquadramento\
-                enquanto houver um Pedido de Autorização da Direção pendente\
-                para ocupante de cargo de chefia ou direção!",
-        )
-        return redirect(reverse("webapp:declaracao_nao_enquadramento"))
-    except AutorizacoesExcecoes.DoesNotExist:
-        ...
-        instance.delete()
-        messages.info(request, "Manifestação excluída com sucesso!")
-    return redirect(reverse("webapp:declaracao_nao_enquadramento"))
-
 
 @login_required
 def plano_trabalho(request):
     servidor = Servidor.objects.get(user=request.user)
     check_dados = servidor.check_dados()
+
     if check_dados:
         return redirect(reverse("webapp:dados_cadastrais"))
+
     if not ManifestacaoInteresse.objects.filter(
         lotacao_servidor__servidor__user=request.user
     ):
@@ -518,6 +392,7 @@ def plano_trabalho(request):
             "É necessário cadastrar a Manifestação de Interesse antes de cadastrar o Plano de Trabalho!",
         )
         return redirect(reverse("webapp:manifestacao_interesse"))
+
     if not DeclaracaoNaoEnquadramentoVedacoes.objects.filter(
         manifestacao__lotacao_servidor__servidor__user=request.user
     ):
@@ -528,21 +403,21 @@ def plano_trabalho(request):
         return redirect(reverse("webapp:declaracao_nao_enquadramento"))
 
     planos_trabalho = PlanoTrabalho.objects.filter(
-        manifestacao__lotacao_servidor__servidor__user=request.user
+        manifestacao__lotacao_servidor__servidor=servidor
     )
+
     context = {"planos_trabalho": planos_trabalho}
+
     return render(request, "webapp/pages/plano-trabalho.html", context)
 
 
 @login_required
 def plano_trabalho_create(request):
-    # escrever validações para garantir que apenas o próprio
-    # usuário possa cadastrar um plano de trabalho para ele mesmo,
-    # assim como a sua chefia imediata
 
     last_manifestacao = ManifestacaoInteresse.objects.filter(
         lotacao_servidor__servidor__user=request.user
     ).last()
+
     if not last_manifestacao.aprovado_chefia:
         messages.info(
             request,
@@ -553,19 +428,19 @@ def plano_trabalho_create(request):
     instance = PlanoTrabalho()
 
     form = PlanoTrabalhoForm(user=request.user)
-    # PeriodoTeletrabalhoFormSet = inlineformset_factory(
-    #     PlanoTrabalho, PeriodoTeletrabalho, fields=("data_inicio", "data_fim")
-    # )
     periodos_formset = PeriodoTeletrabalhoFormSet()
-    # AtividadesTeletrabalhoFormSet = inlineformset_factory(
-    #     PeriodoTeletrabalho, AtividadesTeletrabalho, fields=(
-    #         "periodo", "atividade", "meta_qualitativa", "tipo_meta_quantitativa", "meta_quantitativa", "cumprimento", "justificativa_nao_cumprimento",)
-    # )
     atividades_formset = AtividadesTeletrabalhoFormSet()
+
     if request.method == "POST":
         form = PlanoTrabalhoForm(request.POST, user=request.user)
         if form.is_valid():
             obj = form.save(commit=False)
+
+            # exige que a manifestação de interesse enviada no POST seja do próprio
+            # usuário
+            if obj.manifestacao.lotacao_servidor.servidor.user != request.user:
+                return HttpResponseBadRequest("")
+
             obj.adicionado_por = request.user
             obj.modificado_por = request.user
             obj.modelo = ModeloDocumento.objects.get(nome_modelo="PLANO DE TRABALHO")
@@ -581,8 +456,10 @@ def plano_trabalho_create(request):
 
             if periodos_formset.is_valid():
                 periodos_salvos = periodos_formset.save(commit=False)
-                periodos_salvos_set = set()
 
+                # cria um conjunto a partir de uma lista com o primeiro
+                # dia de cada mês do período especificado.
+                periodos_salvos_set = set()
                 for periodo_salvo in periodos_salvos:
                     for periodo in periodo_salvo.year_months_periodo():
                         periodos_salvos_set.add(periodo)
@@ -592,11 +469,10 @@ def plano_trabalho_create(request):
                 periodos_salvos_set = list(periodos_salvos_set)
                 periodos_salvos_set.sort()
             else:
-                # temos que validar que a data final de cada período
-                # é maior que a data inicial de cada período.
-                # aqui criamos um redirecionamento para exibir o erro
-                return HttpResponse("Data final não pode ser anterior à data inicial!")
+                return HttpResponse("período inválido!")
 
+            # cria os períodos estabelecendo o primeiro e último
+            # dia para cada mês
             for periodo in periodos_salvos_set:
                 last_day_month = calendar.monthrange(periodo.year, periodo.month)[1]
                 data_fim = date(periodo.year, periodo.month, last_day_month)
@@ -613,8 +489,6 @@ def plano_trabalho_create(request):
                 if atividades_formset.is_valid():
                     atividades_formset.save()
                 else:
-                    # se escrevermos validações para o formset
-                    # das atividades, redirecionamos aqui.
                     return HttpResponse("Problema na validação das atividades!")
 
             messages.info(request, "Plano de Trabalho cadastrado com sucesso!")
@@ -635,17 +509,13 @@ def plano_trabalho_create(request):
 
 @login_required
 def plano_trabalho_edit(request, pk):
-    # garante que apenas o próprio usuário
-    # possa alterar o plano de trabalho que ele cadastrou
-    # posteriormente expandir para autorizar a chefia
-    # imediata
-
     try:
         instance = PlanoTrabalho.objects.get(
             pk=pk, manifestacao__lotacao_servidor__servidor__user=request.user
         )
         if instance.aprovado_chefia:
             return redirect(reverse("webapp:plano_trabalho"))
+
     except PlanoTrabalho.DoesNotExist:
         return HttpResponseBadRequest("not allowed")
 
@@ -748,13 +618,6 @@ def plano_trabalho_aprovado_chefia(request, pk):
 
 @login_required
 def plano_trabalho_aprovado_cigt(request, pk):
-    # garante que apenas o usuário registrado como do grupo CIGT
-    # possa aprovar o plano de trabalho
-
-    # substituir o signals
-    # DespachoCIGTPlanoTrabalho
-    # ProtocoloAutorizacaoTeletrabalho
-
     # criar o despachocigtplanodetrabalho e o protocoloautorizacaoteletrabralho
 
     try:
@@ -834,11 +697,18 @@ def plano_trabalho_aprovado_cigt(request, pk):
     return HttpResponseBadRequest("proibido")
 
 
+###### CONTINUAR VERIFICANDO AS VALIDACOES A PARTIR DAQUI ######
+###### CONTINUAR VERIFICANDO AS VALIDACOES A PARTIR DAQUI ######
+###### CONTINUAR VERIFICANDO AS VALIDACOES A PARTIR DAQUI ######
+###### CONTINUAR VERIFICANDO AS VALIDACOES A PARTIR DAQUI ######
+###### CONTINUAR VERIFICANDO AS VALIDACOES A PARTIR DAQUI ######
+###### CONTINUAR VERIFICANDO AS VALIDACOES A PARTIR DAQUI ######
+
+
 @login_required
 def plano_trabalho_delete(request, pk):
     # escrever as validações para que apenas o próprio usuário e a chefia
     # imediata possam deletar o plano de trabalho cadastrado por ambos.
-    # usar o messages.
 
     plano_trabalho = PlanoTrabalho.objects.get(pk=pk)
     if not plano_trabalho.aprovado_chefia:
@@ -849,23 +719,7 @@ def plano_trabalho_delete(request, pk):
 
 @login_required
 def periodo_teletrabalho(request, pk):
-    # note que pk é a chave primária do plano de trabalho
-    # PeriodoTeletrabalhoFormSet = inlineformset_factory(
-    #     PlanoTrabalho, PeriodoTeletrabalho, fields=("data_inicio", "data_fim")
-    # )
-    # plano_trabalho = PlanoTrabalho.objects.get(pk=pk)
-    # formset = PeriodoTeletrabalhoFormSet(instance=plano_trabalho)
-    # if request.method == 'POST':
-    #     formset = PeriodoTeletrabalhoFormSet(
-    #         request.POST, instance=plano_trabalho)
-    #     if formset.is_valid():
-    #         formset.save()
-    #         plano_trabalho = PlanoTrabalho.objects.get(pk=pk)
-    #         # formset = PeriodoTeletrabalhoFormSet(instance=plano_trabalho)
-    #         return redirect(reverse('webapp:plano_trabalho_edit', kwargs={'pk': pk}))
-    # context = {
-    #     'formset': formset,
-    # }
+
     obj = PeriodoTeletrabalho.objects.get(pk=pk)
     form = PeriodoTeletrabalhoForm(instance=obj)
 
@@ -904,23 +758,6 @@ def periodo_teletrabalho_delete(request, pk):
 
 @login_required
 def atividade_teletrabalho(request, pk):
-    # note que pk é a chave primária do plano de trabalho
-    # AtividadesTeletrabalhoFormSet = inlineformset_factory(
-    #     PlanoTrabalho, AtividadesTeletrabalho, fields=(
-    #         "atividade", "meta_qualitativa", "tipo_meta_quantitativa", "meta_quantitativa")
-    # )
-    # plano_trabalho = PlanoTrabalho.objects.get(pk=pk)
-    # formset = AtividadesTeletrabalhoFormSet(instance=plano_trabalho)
-    # if request.method == 'POST':
-    #     formset = AtividadesTeletrabalhoFormSet(
-    #         request.POST, instance=plano_trabalho)
-    #     if formset.is_valid():
-    #         formset.save()
-    #         return redirect(reverse('webapp:plano_trabalho_edit', kwargs={'pk': pk}))
-
-    # context = {
-    #     'formset': formset,
-    # }
 
     obj = AtividadesTeletrabalho.objects.get(pk=pk)
     form = AtividadesTeletrabalhoForm(instance=obj)

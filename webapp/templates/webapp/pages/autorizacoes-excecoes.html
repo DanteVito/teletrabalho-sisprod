@@ -19,7 +19,6 @@
                 <th>Servidor</th>
                 <th>Posto de Trabalho</th>
                 <th>Analisar</th>
-                <th>Deletar</th>
             </tr>
         </thead>
         <tbody>
@@ -31,8 +30,6 @@
                     <td>{{ autorizacao.declaracao.manifestacao.lotacao_servidor.servidor }}</td>
                     <td>{{ autorizacao.declaracao.manifestacao.lotacao_servidor.posto_trabalho.posto }}</td>
                     <td>{% if autorizacao.aprovado_gabinete == 'aprovado' %}ACEITA{% elif autorizacao.aprovado_gabinete == 'reprovado' %}NÃO ACEITA{% else %}<a href={% url 'webapp:autorizacao_excecao_edit' autorizacao.pk %}>ANALISAR</a>{% endif %}</td>
-                    <td>{% if autorizacao.aprovado_gabinete == 'aprovado' %}X{% elif autorizacao.aprovado_gabinete == 'reprovado' %}X{% else %}<a href={% url 'webapp:autorizacao_excecao_edit' autorizacao.pk %}><a href="{% url 'webapp:autorizacao_excecao_delete' autorizacao.pk %}">deletar</a></a>{% endif %}</td>
-                    
                 </tr>
             {% endfor %}
         </tbody>
