@@ -24,10 +24,12 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # third-party apps
     "django_extensions",
+    "django_apscheduler",
     # my apps
     "authentication",
     "render",
     "webapp",
+    "scheduler",
 ]
 
 # custom user model
@@ -124,3 +126,14 @@ MESSAGE_TAGS = {
     constants.SUCCESS: "message-success",
     constants.WARNING: "message-warning",
 }
+
+# This scheduler config will:
+# - Store jobs in the project database
+# - Execute jobs in threads inside the application process
+SCHEDULER_CONFIG = {
+    "apscheduler.jobstores.default": {
+        "class": "django_apscheduler.jobstores:DjangoJobStore"
+    },
+    "apscheduler.executors.processpool": {"type": "threadpool"},
+}
+SCHEDULER_AUTOSTART = True
