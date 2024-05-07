@@ -2472,9 +2472,10 @@ def deleta_gabinete_callback(sender, **kwargs):
 
     instance = kwargs["instance"]
     if "GABINETE" in instance.servidor.user.get_group_set():
-        if instance.data_fim < date.today():
-            gabinete = Group.objects.get(name="GABINETE")
-            gabinete.user_set.remove(instance.servidor.user)
+        if instance.data_fim:
+            if instance.data_fim < date.today():
+                gabinete = Group.objects.get(name="GABINETE")
+                gabinete.user_set.remove(instance.servidor.user)
 
 
 # @receiver(post_save, sender=PlanoTrabalho, weak=False)
