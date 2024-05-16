@@ -22,7 +22,7 @@
             {% if not avaliacao.atestado_cumprimento_metas %}
                 <tr>
                     <td>{{ obj.id }}</td>
-                    <td><a href={% url "webapp:protocolo_autorizacao_teletrabalho_edit" obj.protocolo_autorizacao.pk %}>{{ obj.protocolo_autorizacao.despacho_cigt.plano_trabalho.manifestacao.servidor }}</a></td>
+                    <td><a href={% url "webapp:protocolo_autorizacao_teletrabalho_edit" obj.protocolo_autorizacao.pk %}>{{ obj.protocolo_autorizacao.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor.user.nome}}</a></td>
                     <td>{{ obj.protocolo_autorizacao.sid }}</td>
                     <td>{{ obj.competencia }}</td>
                     <td>{{ obj.vigente }}</td>

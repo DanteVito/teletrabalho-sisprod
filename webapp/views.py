@@ -435,7 +435,6 @@ def plano_trabalho_create(request):
         form = PlanoTrabalhoForm(request.POST, user=request.user)
         if form.is_valid():
             obj = form.save(commit=False)
-
             # exige que a manifestação de interesse enviada no POST seja do próprio
             # usuário
             if obj.manifestacao.lotacao_servidor.servidor.user != request.user:

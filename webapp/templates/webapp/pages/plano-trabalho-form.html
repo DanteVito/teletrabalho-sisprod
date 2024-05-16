@@ -60,12 +60,13 @@
     <div id="periodos">
         {% for form in periodos_formset %}
             <div id="periodo-{{ forloop.counter0 }}">
-                <div class="field">
+                <div class="field" hidden>
                     <label class="label">
                         Plano de Trabalho
                     </label>
                     {{ form.plano_trabalho }}
                 </div>
+
                 <div class="field">
                     <label class="label">Data Inicial</label>
                     {{ form.data_inicio }}
@@ -81,8 +82,9 @@
         {% endfor %}
     </div>
     
-    <a id="buttonAddPeriodo" hx-get={% url "webapp:htmx_adiciona_periodo" %} hx-target="#periodos" hx-swap="beforeend">Adicionar Período</a>
+    <a onclick="adiciona_periodo()" id="buttonAddPeriodo" hx-get={% url "webapp:htmx_adiciona_periodo" %} hx-target="#periodos" hx-swap="beforeend">Adicionar Período</a>
 
+    <ul id="periodos-adicionados"></ul>
         
     {% elif tipo_form == 'edit' %}
 

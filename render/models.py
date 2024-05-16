@@ -957,11 +957,17 @@ class PeriodoTeletrabalho(models.Model):
         no primeiro dia da data_inicio apontada e terminando no último
         dia do mês da data_fim apontada
         """
-        self.data_inicio = date(self.data_inicio.year, self.data_inicio.month, 1)
-        last_day_of_month = calendar.monthrange(
-            self.data_fim.year, self.data_fim.month
-        )[1]
-        self.data_fim = date(self.data_fim.year, self.data_fim.month, last_day_of_month)
+        try:
+
+            self.data_inicio = date(self.data_inicio.year, self.data_inicio.month, 1)
+            last_day_of_month = calendar.monthrange(
+                self.data_fim.year, self.data_fim.month
+            )[1]
+            self.data_fim = date(
+                self.data_fim.year, self.data_fim.month, last_day_of_month
+            )
+        except AttributeError:
+            ...
         return self
 
     @classmethod
