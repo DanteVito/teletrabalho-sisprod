@@ -19,7 +19,6 @@
 
 <form method="POST">
     {% csrf_token %}
-
     <div class="field">
         <label class="label">Manifestação de Interesse</label>
         <div class="control">
@@ -44,17 +43,16 @@
     <div class="field">
         <label class="label">Sistemas</label>
         <div class="control">
-          <div class="select is-multiple">{{ form.sistemas }}</div>
+            <div class="select is-multiple">{{ form.sistemas }}</div>
         </div>
-      </div>
+    </div>
+
 
     <h4 class="title is-6">Período(s)</h4>
 
-    <hr>
-
     {% if tipo_form == 'create' %}
     {{ periodos_formset.management_form }}
-    
+
     <!-- htmx -->
 
     <div id="periodos">
@@ -81,10 +79,13 @@
             </div>
         {% endfor %}
     </div>
-    
+    <hr>
     <a onclick="adiciona_periodo()" id="buttonAddPeriodo" hx-get={% url "webapp:htmx_adiciona_periodo" %} hx-target="#periodos" hx-swap="beforeend">Adicionar Período</a>
+    <hr>
 
     <ul id="periodos-adicionados"></ul>
+    
+
         
     {% elif tipo_form == 'edit' %}
 
@@ -163,47 +164,51 @@
     
     {% endif %}
 
-    <hr>
 
     {% if tipo_form == 'create' %}
+
+    <div class="box">
         <div id="atividades">
             {{ atividades_formset.management_form }}
             {% for form in atividades_formset %}
-                <div id="atividade-{{ forloop.counter0 }}">
-                    <div class="field">
-                        <label class="label">Atividade</label>
-                        <div class="control">
-                            <div class="select">{{ form.atividade }}</div>
+                    <div id="atividade-{{ forloop.counter0 }}">
+                        <div class="field">
+                            <label class="label">Atividade</label>
+                            <div class="control">
+                                <div class="select">{{ form.atividade }}</div>
+                            </div>
                         </div>
-                    </div>
-        
-                    <div class="field">
-                        <label for="" class="label">Meta Qualitativa</label>
-                        <div class="control">
-                            {{ form.meta_qualitativa }}
-                        </div>
-                    </div>
-        
-                    <div class="field">
-                        <label class="label">Tipo de Meta Quantitativa</label>
-                        <div class="control">
-                            <div class="select">{{ form.tipo_meta_quantitativa }}</div>
-                        </div>
-                    </div>
-        
-                    <div class="field">
-                        <label for="" class="label">Meta Quantitativa</label>
-                        <div class="control">
-                            {{ form.meta_quantitativa }}
-                        </div>
-                    </div>
-            </div>
             
-            {% endfor %}
+                        <div class="field">
+                            <label for="" class="label">Meta Qualitativa</label>
+                            <div class="control">
+                                {{ form.meta_qualitativa }}
+                            </div>
+                        </div>
+            
+                        <div class="field">
+                            <label class="label">Tipo de Meta Quantitativa</label>
+                            <div class="control">
+                                <div class="select">{{ form.tipo_meta_quantitativa }}</div>
+                            </div>
+                        </div>
+            
+                        <div class="field">
+                            <label for="" class="label">Meta Quantitativa</label>
+                            <div class="control">
+                                {{ form.meta_quantitativa }}
+                            </div>
+                        </div>
+                </div>
+                {% endfor %}
+            </div>
+            <hr>
+            <a onclick="adiciona_atividade()" id="buttonAddAtividade" hx-get={% url "webapp:htmx_adiciona_atividade" %} hx-target="#atividades" hx-swap="beforeend">Adicionar Atividade</a>
         </div>
 
-    <a id="buttonAddAtividade" hx-get={% url "webapp:htmx_adiciona_atividade" %} hx-target="#atividades" hx-swap="beforeend">Adicionar Atividade</a>
 
+    <ul id="atividades-adicionadas"></ul>
+    
     {% endif %}
 
     <hr>
