@@ -28,15 +28,12 @@ function hidden_atividade() {
       //console.log(atividade, i)
       atividade.style.display = "none"
     })
+  last_atividade = document.querySelectorAll("[id^='atividade-']")[document.querySelectorAll("[id^='atividade-']").length - 1]
+  last_atividade.setAttribute('count-atividade', COUNTER_PERIODOS)
 }
 
 function add_date() {
   // adiciona o período na tela
-  //var periodo = document.getElementById("periodo-" + COUNTER_PERIODOS)
-
-  //
-  // REORGANIZAR PERIODOS APENAS NO FINAL PARA PODER IDENTIFICAR CADA UM DELES
-  //
 
   var ul = document.querySelector("[id=periodos-adicionados]")
   var li = document.createElement("li")
@@ -203,7 +200,7 @@ function reorderItems_atividades() {
   Array.from(document.querySelectorAll("[id^='atividade-']"))
     .forEach((periodo, i) => {
       periodo.setAttribute('id', 'atividade-' + i)
-      if (i > 0) {
+      if (i >= 0) {
         console.log(periodo.querySelector('[data-field="periodo"]'))
         console.log(periodo.querySelector('[data-field="atividade"]'))
         console.log(periodo.querySelector('[data-field="meta_qualitativa"]'))
