@@ -48,7 +48,7 @@
     </div>
 
 
-    <h4 class="title is-6">Período(s)</h4>
+    <h4 class="title is-5">Período(s)</h4>
 
     {% if tipo_form == 'create' %}
     {{ periodos_formset.management_form }}
@@ -58,24 +58,29 @@
     <div id="periodos">
         {% for form in periodos_formset %}
             <div id="periodo-{{ forloop.counter0 }}">
-                <div class="field" hidden>
-                    <label class="label">
-                        Plano de Trabalho
-                    </label>
-                    {{ form.plano_trabalho }}
+                <div class="field is-horizontal">
+                    <div class="field-body">
+                        <div class="field" hidden>
+                            <label class="label">
+                                Plano de Trabalho
+                            </label>
+                            {{ form.plano_trabalho }}
+                        </div>
+        
+                        <div class="field">
+                            <label class="label">Data Inicial</label>
+                            {{ form.data_inicio }}
+                        </div>
+            
+                        <div class="field">
+                            <label class="label">Data Final</label>
+                            <div class="control">
+                            {{ form.data_fim }}
+                            </div>
+                        </div>
+                </div>
                 </div>
 
-                <div class="field">
-                    <label class="label">Data Inicial</label>
-                    {{ form.data_inicio }}
-                </div>
-    
-                <div class="field">
-                    <label class="label">Data Final</label>
-                    <div class="control">
-                    {{ form.data_fim }}
-                    </div>
-                </div>
             </div>
         {% endfor %}
     </div>
@@ -105,7 +110,7 @@
 
         <hr>
 
-        <h3 class="title is-6"> Incluir Período </h3>
+        <h3 class="title is-5"> Incluir Período </h3>
 
         <div class="field">
             {{ form_add_periodo.plano_trabalho }}
@@ -127,7 +132,7 @@
 
     <hr>
 
-    <h3 class="title is-6"> Incluir Atividade </h3>
+    <h3 class="title is-5"> Incluir Atividade </h3>
 
     <div class="field">
         {{ form_add_atividade.periodo }}
@@ -159,52 +164,51 @@
         <div class="control">
             {{ form_add_atividade.meta_quantitativa }}
         </div>
+    </div>
 
         <a id="buttonAddAtividade" hx-post={% url 'webapp:htmx_adiciona_atividade_edit' plano_trabalho.pk %} hx-target="#periodos-atividades-edit" hx-swap="outerHTML">Adicionar Atividade</a>
     
     {% endif %}
 
-
     {% if tipo_form == 'create' %}
 
-    <div class="box">
-        <div id="atividades">
-            {{ atividades_formset.management_form }}
-            {% for form in atividades_formset %}
-                    <div id="atividade-{{ forloop.counter0 }}">
-                        <div class="field">
-                            <label class="label">Atividade</label>
-                            <div class="control">
-                                <div class="select">{{ form.atividade }}</div>
-                            </div>
+    <div id="atividades">
+        {{ atividades_formset.management_form }}
+        {% for form in atividades_formset %}
+                <div id="atividade-{{ forloop.counter0 }}">
+                    <div class="field">
+                        <label class="label">Atividade</label>
+                        <div class="control">
+                            <div class="select">{{ form.atividade }}</div>
                         </div>
-            
-                        <div class="field">
-                            <label for="" class="label">Meta Qualitativa</label>
-                            <div class="control">
-                                {{ form.meta_qualitativa }}
-                            </div>
+                    </div>
+        
+                    <div class="field">
+                        <label for="" class="label">Meta Qualitativa</label>
+                        <div class="control">
+                            {{ form.meta_qualitativa }}
                         </div>
-            
-                        <div class="field">
-                            <label class="label">Tipo de Meta Quantitativa</label>
-                            <div class="control">
-                                <div class="select">{{ form.tipo_meta_quantitativa }}</div>
-                            </div>
+                    </div>
+        
+                    <div class="field">
+                        <label class="label">Tipo de Meta Quantitativa</label>
+                        <div class="control">
+                            <div class="select">{{ form.tipo_meta_quantitativa }}</div>
                         </div>
-            
-                        <div class="field">
-                            <label for="" class="label">Meta Quantitativa</label>
-                            <div class="control">
-                                {{ form.meta_quantitativa }}
-                            </div>
+                    </div>
+        
+                    <div class="field">
+                        <label for="" class="label">Meta Quantitativa</label>
+                        <div class="control">
+                            {{ form.meta_quantitativa }}
                         </div>
-                </div>
-                {% endfor %}
+                    </div>
             </div>
-            <hr>
-            <a onclick="adiciona_atividade()" id="buttonAddAtividade" hx-get={% url "webapp:htmx_adiciona_atividade" %} hx-target="#atividades" hx-swap="beforeend">Adicionar Atividade</a>
+            {% endfor %}
         </div>
+        <hr>
+        <a onclick="adiciona_atividade()" id="buttonAddAtividade" hx-get={% url "webapp:htmx_adiciona_atividade" %} hx-target="#atividades" hx-swap="beforeend">Adicionar Atividade</a>
+    </div>
 
 
     <ul id="atividades-adicionadas"></ul>

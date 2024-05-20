@@ -86,6 +86,9 @@ function add_date() {
 
   // criar o elemento com o atributo da COUNTER_PERIODOS, para depois criar uma função que remove o período
   COUNTER_PERIODOS++
+
+  // reordena os itens
+  reorderItems_periodos()
 }
 
 function add_atividade() {
@@ -161,7 +164,9 @@ function add_atividade() {
 
   // criar o elemento com o atributo da COUNTER_ATIVIDADES, para depois criar uma função que remove o período
   COUNTER_ATIVIDADES++
-  reorderItems()
+
+  // reordena itens
+  reorderItems_atividades()
 }
 
 
