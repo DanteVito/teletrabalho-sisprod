@@ -1838,7 +1838,7 @@ class ProtocoloAutorizacaoTeletrabalho(BaseModelGeneral):
         return context
 
     class Meta:
-        ordering = ("sid",)
+        ordering = ("id",)
         verbose_name = "Protocolo Autorização Teletrabalho"
         verbose_name_plural = "Chefias | Protocolos de Autorização Teletrabalho"
 
