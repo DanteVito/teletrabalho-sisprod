@@ -2602,28 +2602,17 @@ def controle_mensal_teletrabalho_callback(sender, **kwargs):
     created = kwargs["created"]
 
     if created:
-
         servidor = (
             instance.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor
         )
-        planos_trabalho = PlanoTrabalho.objects.filter(
-            manifestacao__lotacao_servidor__servidor=servidor
-        )
-        # pareceres_cigt = DespachoCIGTPlanoTrabalho.objects.filter(
-        #     plano_trabalho__in=planos_trabalho)
-        # filtra todos os protocolos já aprovados
         protocolos_servidor = (
             ProtocoloAutorizacaoTeletrabalho.get_protocolos_aprovados_por_servidor(
                 servidor
             )
         )
-        # verifica o último protocolo aprovado
-        # last_protocolo = protocolos_servidor.last()
+
         protocolo_atual = instance
         plano_trabalho_atual = instance.despacho_cigt.plano_trabalho
-        # cria as entradas do novo protocolo na tabela ControleMensalTeletrabalho
-
-        # tenho que escrever uma funcao que retorne um conjunto com os periodos ja aprovados da tabela de controlemensal
 
         periodos_ja_aprovados = (
             ControleMensalTeletrabalho.get_periodos_aprovados_por_servidor(servidor)
@@ -2650,8 +2639,8 @@ def controle_mensal_teletrabalho_callback(sender, **kwargs):
                     f"[!]{periodo} consta no novo plano de trabalho e já consta em algum plano de trabalho antigo [NO ACTION]!"
                 )
                 # situação em que o novo plano de trabalho tem um período que já
-                # está na tabela de controle mensal
-                # nesse caso, se a vigência estiver FALSE alteramos para TRUE, pois o período está no plano novo
+                # está na tabela de controle mensal. Nesse caso, se a vigência estiver
+                # FALSE alteramos para TRUE.
                 controle_mensal = (
                     ControleMensalTeletrabalho.objects.filter(
                         protocolo_autorizacao__in=protocolos_servidor
@@ -2663,91 +2652,28 @@ def controle_mensal_teletrabalho_callback(sender, **kwargs):
                 controle_mensal.protocolo_alteracao = protocolo_atual
                 controle_mensal.save()
 
-        # precisamos verificar a necessidade de modificar uma entrada na tabel de controle
+        # REGRA RETIRADA! IREMOS ADOTAR APENAS O CANCELAMENTO EXPRESSO PELA CHEFIA IMEDIATA
+        # AO INVÉS DE FAZER COM QUE UM NOVO PLANO DE TRABALHO ANULE O PREVIAMENTE AUTORIZADO
+        # USAR ESSA LÓGICA PARA A VIEW COM O CANCELAMENTO DA CHEFIA
+
+        # precisamos verificar a necessidade de modificar uma entrada na tabela de controle
         # mensal.
         # se um novo plano de trabalho (instance) não contiver algum período já aprovado,
         # editamos a vigência do período
 
-        for periodo in periodos_ja_aprovados:
-            if not periodo in periodo_atual:
-                print(
-                    f"[!]{periodo} NÃO consta no novo plano de trabalho consta em algum plano de trabalho antigo [RETIRAR VIGÊNCIA]!"
-                )
-                controle_mensal = (
-                    ControleMensalTeletrabalho.objects.filter(
-                        protocolo_autorizacao__in=protocolos_servidor
-                    )
-                    .filter(competencia=periodo)
-                    .first()
-                )
-                if controle_mensal:
-                    controle_mensal.vigente = False
-                    controle_mensal.protocolo_alteracao = protocolo_atual
-                    controle_mensal.save()
-
-        # for periodo in ProtocoloAutorizacaoTeletrabalho.get_periodos_aprovados_por_servidor(servidor):
-        # if not ControleMensalTeletrabalho.objects.filter(protocolo_autorizacao=last_protocolo).filter(competencia=periodo):
-
-        # for periodo_atual in plano_trabalho_atual.get_lista_ano_mes_periodos_teletrabalho():
-
-        # for protocolo_servidor in protocolos_servidor:
-        # if not ControleMensalTeletrabalho.objects.filter(protocolo_autorizacao=protocolo_servidor).filter(competencia=periodo):
-
-        # itera todos os protocolos já aprovados para verificar se houve mudança de período
-        """for protocolo in protocolos_servidor:
-            # exclui o último protocolo
-            if protocolo != instance:
-                for periodo_anterior in protocolo.despacho_cigt.plano_trabalho.get_lista_ano_mes_periodos_teletrabalho():
-                    # verifica se o período não consta no último protocolo
-                    if not instance.despacho_cigt.plano_trabalho.is_servidor_teletrabalho_ano_mes(periodo_anterior):
-                        print(f'{periodo_anterior} não consta no novo protocolo')
-                        # tira a vigencia na tabela ControleMensalTeletralho
-                        import ipdb
-                        ipdb.set_trace()
-                        controle_mensal = ControleMensalTeletrabalho.objects.filter(
-                            protocolo_autorizacao=protocolo)
-                        controle_mensal_periodo = controle_mensal.filter(
-                            competencia=periodo_anterior).first()
-                        controle_mensal_periodo.vigente = False
-                        controle_mensal_periodo.protocolo_alteracao = protocolo_atual
-                        controle_mensal_periodo.save()"""
-
-
-# @receiver(post_save, sender=AtividadesTeletrabalho, weak=False)
-# def cumprimento_avaliacao_das_atividades_chefia(sender, **kwargs):
-#     instance = kwargs['instance']
-#     created = kwargs['created']
-
-#     # avaliacao.verifica_avaliacoes_no_periodo()
-#     # import ipdb
-#     # ipdb.set_trace()
-
-#     if not created:
-#         avaliacao = instance.get_avaliacao_chefia()
-#         if avaliacao:
-#             print(f'cumprimento: { instance.cumprimento }')
-#             atividades = avaliacao.get_atividades_para_avaliacao()
-#             qtd_atividades = len(atividades)
-#             count_atividades = 0
-#             print(
-#                 f'pré -> avaliação chefia: { avaliacao.atestado_cumprimento_metas }')
-#             for atividade in atividades:
-#                 if atividade.cumprimento == 'cumprida':
-#                     count_atividades += 1
-#                 elif atividade.cumprimento == 'parcialmente_cumprida':
-#                     count_atividades += .5
-#                 elif atividade.cumprimento == 'nao_executada':
-#                     count_atividades += 0
-
-#             if count_atividades == qtd_atividades:
-#                 avaliacao.atestado_cumprimento_metas = 1
-#                 avaliacao.save()
-#             elif count_atividades == 0:
-#                 avaliacao.atestado_cumprimento_metas = 3
-#                 avaliacao.save()
-#             else:
-#                 avaliacao.atestado_cumprimento_metas = 2
-#                 avaliacao.save()
-
-#             print(
-#                 f'pos -> avaliação chefia: { avaliacao.atestado_cumprimento_metas }')
+        # for periodo in periodos_ja_aprovados:
+        #     if not periodo in periodo_atual:
+        #         print(
+        #             f"[!]{periodo} NÃO consta no novo plano de trabalho consta em algum plano de trabalho antigo [RETIRAR VIGÊNCIA]!"
+        #         )
+        #         controle_mensal = (
+        #             ControleMensalTeletrabalho.objects.filter(
+        #                 protocolo_autorizacao__in=protocolos_servidor
+        #             )
+        #             .filter(competencia=periodo)
+        #             .first()
+        #         )
+        #         if controle_mensal:
+        #             controle_mensal.vigente = False
+        #             controle_mensal.protocolo_alteracao = protocolo_atual
+        #             controle_mensal.save()

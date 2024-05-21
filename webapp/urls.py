@@ -215,6 +215,18 @@ urlpatterns = [
         views.chefia_imediata_alterar_avaliacao_mensal,
         name="chefia_imediata_alterar_avaliacao_mensal",
     ),
+    # chefia imediata controle mensal teletrabalho
+    path(
+        "chefia-controle-mensal-teletrabalho/",
+        views.chefia_imediata_controle_mensal,
+        name="chefia_imediata_controle_mensal",
+    ),
+    # chefia imediata controle mensal teletrabalho cancela periodo
+    path(
+        "chefia-imediata-controle-mensal-cancelar_periodo/<int:pk>",
+        views.chefia_imediata_controle_mensal_cancelar_periodo,
+        name="chefia_imediata_controle_mensal_cancelar_periodo",
+    ),
     # gabinete
     path("gabinete/", views.gabinete, name="gabinete"),
     # download arquivos

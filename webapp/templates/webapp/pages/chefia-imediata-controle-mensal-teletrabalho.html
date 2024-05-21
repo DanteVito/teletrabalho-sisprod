@@ -1,0 +1,36 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2 class="title is-2">Chefia Imediata - Controle Mensal Teletrabalho </h2>
+
+<table class="table is-striped is-hoverable">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Servidor</th>
+            <th>Competência</th>
+            <th>Vigente</th>
+            <th>Publicado DOE</th>
+            <th>Cancelar Teletrabalho</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for obj in controle_mensal_objs %}
+            {% if not avaliacao.atestado_cumprimento_metas %}
+                <tr>
+                    <td>{{ obj.id }}</td>
+                    <td><a href={% url "webapp:protocolo_autorizacao_teletrabalho_edit" obj.protocolo_autorizacao.pk %}>{{ obj.protocolo_autorizacao.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor.user.nome}}</a></td>
+                    <td>{{ obj.competencia }}</td>
+                    <td>{{ obj.vigente }}</td>
+                    <td>{{ obj.publicado_doe }}</td>
+                    <td><a href={% url "webapp:chefia_imediata_controle_mensal_cancelar_periodo" obj.pk %}>[X]</a></td>
+                </tr>
+            {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock%}

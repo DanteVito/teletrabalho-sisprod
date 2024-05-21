@@ -1136,6 +1136,41 @@ def chefia_imediata_realizar_avaliacoes_mensais(request):
 
 
 @login_required
+def chefia_imediata_controle_mensal(request):
+    if request.user.groups.filter(name="CHEFIAS"):
+        controle_mensal_objs = ControleMensalTeletrabalho.objects.all()
+        context = {"controle_mensal_objs": controle_mensal_objs}
+        return render(
+            request,
+            "webapp/pages/chefia-imediata-controle-mensal-teletrabalho.html",
+            context,
+        )
+
+
+@login_required
+def chefia_imediata_controle_mensal_cancelar_periodo(request, pk):
+    if request.user.groups.filter(name="CHEFIAS"):
+        # escrever função que altera ControleMensalTeletrabalho
+
+        # A FAZER
+        # fazer uma validação para impedir o cancelamento de períodos
+        # que já passaram
+
+        obj = ControleMensalTeletrabalho.objects.get(pk=pk)
+        if obj.competencia > date.today():
+            obj.vigente = False
+            # depois alterar a criação do protocolo de autorização
+
+            protocolo = ProtocoloAutorizacaoTeletrabalho.objects.last()
+            obj.protocolo_alteracao = protocolo
+            obj.save()
+        else:
+            messages.error(request, "Não é possível cancelar um período pretérito!")
+
+        return redirect(reverse("webapp:chefia_imediata_controle_mensal"))
+
+
+@login_required
 def avaliacoes_chefia(request):
     if request.user.groups.filter(name="CHEFIAS"):
         pareceres_cigt = DespachoCIGTPlanoTrabalho.objects.filter(
