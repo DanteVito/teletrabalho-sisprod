@@ -24,7 +24,11 @@
         <tbody>
             {% for autorizacao in autorizacoes %}
                 <tr>
+                    {% if autorizacao.aprovado_gabinete %}
                     <td><a href={% url "webapp:download_docx" "autorizacao-excecao" autorizacao.id %}>{{ autorizacao.id }}</a></td>
+                    {% else %}
+                    <td>{{ autorizacao.id }}</td>
+                    {% endif %}
                     <td>{{ autorizacao.declaracao.manifestacao.lotacao_servidor.posto_trabalho.setor.unidade }}</td>
                     <td>{{ autorizacao.declaracao.manifestacao.lotacao_servidor.posto_trabalho.setor.nome }}</td>
                     <td>{{ autorizacao.declaracao.manifestacao.lotacao_servidor.servidor }}</td>

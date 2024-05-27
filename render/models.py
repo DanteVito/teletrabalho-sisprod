@@ -660,15 +660,20 @@ class AutorizacoesExcecoes(BaseModelMethods):
             ...
 
     def get_context_docx(self):
+        try:
+            cargo_autorizador = (
+                Lotacao.objects.filter(servidor__user=self.modificado_por)
+                .last()
+                .posto_trabalho.posto
+            )
+        except AttributeError:
+            cargo_autorizador = ""
+
         context = {
             "data": self.get_date(),
             "servidor": self.declaracao.manifestacao.lotacao_servidor.servidor.user.nome,
             "modificado_por": self.modificado_por,
-            "cargo_autorizador": Lotacao.objects.filter(
-                servidor__user=self.modificado_por
-            )
-            .last()
-            .posto_trabalho.posto,
+            "cargo_autorizador": cargo_autorizador,
         }
         return context
 

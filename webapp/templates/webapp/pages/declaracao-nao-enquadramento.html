@@ -26,9 +26,9 @@
         <tbody>
             {% for declaracao in declaracoes %}
                 <tr>
-                    <td>{{ declaracao.id }}</td>
+                    <td><a href={% url "webapp:download_docx" "declaracao" declaracao.id %}>{{ declaracao.id }}</a></td>
                     <td>{{ declaracao.manifestacao.lotacao_servidor.servidor.user.nome }}</td>
-                    <td><a href={% url "webapp:download_docx" "declaracao" declaracao.id %}>SIM</a></td>
+                    <td>SIM</td>
                     {% comment %} <td><a href="{% url 'webapp:declaracao_nao_enquadramento_edit' declaracao.pk %}">editar</a></td> {% endcomment %}
                     {% comment %} <td><a href="{% url 'webapp:declaracao_nao_enquadramento_delete' declaracao.pk %}">deletar</a></td> {% endcomment %}
                 </tr>
@@ -53,9 +53,9 @@
         <tbody>
             {% for declaracao, autorizacao in declaracoes_autorizacoes %}
                 <tr>
-                    <td>{{ declaracao.id }}</td>
+                    <td><a href={% url "webapp:download_docx" "declaracao" declaracao.id %}>{{ declaracao.id }}</a></td>
                     <td>{{ declaracao.manifestacao.lotacao_servidor.servidor.user.nome }}</td>
-                    <td>{% if autorizacao.aprovado_gabinete == 'aprovado' %}<a href={% url "webapp:download_docx" "declaracao" declaracao.id %}>SIM</a>{% elif autorizacao.aprovado_gabinete == 'reprovado' %}NÃO{% else %}PENDENTE{% endif %}</td>
+                    <td>{% if autorizacao.aprovado_gabinete == 'aprovado' %}<a href={% url "webapp:download_docx" "autorizacao-excecao" autorizacao.id %}>SIM</a>{% elif autorizacao.aprovado_gabinete == 'reprovado' %}NÃO{% else %}PENDENTE{% endif %}</td>
                     {% comment %} <td><a href="{% url 'webapp:declaracao_nao_enquadramento_edit' declaracao.pk %}">editar</a></td>
                     <td><a href="{% url 'webapp:declaracao_nao_enquadramento_delete' declaracao.pk %}">deletar</a></td> {% endcomment %}
                 </tr>

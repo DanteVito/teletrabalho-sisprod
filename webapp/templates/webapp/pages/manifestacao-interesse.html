@@ -29,7 +29,7 @@
         <tbody>
             {% for manifestacao in manifestacoes_servidor %}
                 <tr>
-                    <td>{{ manifestacao.id }}</td>
+                    <td><a href={% url "webapp:download_docx" "manifestacao" manifestacao.id %}>{{ manifestacao.id }}</a></td>
                     <td>{{ manifestacao.lotacao_servidor.posto_trabalho.setor.unidade }}</td>
                     <td>{{ manifestacao.lotacao_servidor.posto_trabalho.setor.nome }}</td>
                     <td>{{ manifestacao.lotacao_servidor.servidor.user.nome }}</td>
