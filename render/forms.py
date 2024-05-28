@@ -248,9 +248,13 @@ class AtividadesTeletrabalhoForm(ModelForm):
             "meta_quantitativa",
         )
         widgets = {
-            "periodo": forms.HiddenInput(),
-            "meta_qualitativa": forms.TextInput(attrs={"class": "input"}),
-            "meta_quantitativa": forms.TextInput(attrs={"class": "input"}),
+            "periodo": forms.HiddenInput(attrs={"data-field": "periodo"}),
+            "meta_qualitativa": forms.TextInput(
+                attrs={"class": "input", "data-field": "meta_qualitativa"}
+            ),
+            "meta_quantitativa": forms.TextInput(
+                attrs={"class": "input", "data-field": "meta_quantitativa"}
+            ),
         }
 
 
@@ -326,8 +330,17 @@ AtividadesTeletrabalhoFormSet = inlineformset_factory(
         "meta_quantitativa",
     ),
     widgets={
-        "meta_qualitativa": forms.TextInput(attrs={"class": "input"}),
-        "meta_quantitativa": forms.TextInput(attrs={"class": "input"}),
+        "periodo": forms.HiddenInput(attrs={"data-field": "periodo"}),
+        "atividade": forms.Select(attrs={"data-field": "atividade"}),
+        "meta_qualitativa": forms.TextInput(
+            attrs={"class": "input", "data-field": "meta_qualitativa"}
+        ),
+        "tipo_meta_quantitativa": forms.Select(
+            attrs={"data-field": "tipo_meta_quantitativa"}
+        ),
+        "meta_quantitativa": forms.TextInput(
+            attrs={"class": "input", "data-field": "meta_quantitativa"}
+        ),
     },
 )
 

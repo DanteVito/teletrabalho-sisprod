@@ -29,6 +29,8 @@ INSTALLED_APPS = [
     "authentication",
     "render",
     "webapp",
+    # quando fizer a migração inicial
+    # comente o scheduler
     "scheduler",
 ]
 
