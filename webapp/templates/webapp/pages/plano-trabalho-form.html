@@ -175,6 +175,12 @@
         {{ atividades_formset.management_form }}
         {% for form in atividades_formset %}
                 <div id="atividade-{{ forloop.counter0 }}">
+                    <div class="field" hidden>
+                        <label class="label">Periodo</label>
+                        <div class="control">
+                            <div class="select">{{ form.periodo }}</div>
+                        </div>
+                    </div>
                     <div class="field">
                         <label class="label">Atividade</label>
                         <div class="control">
