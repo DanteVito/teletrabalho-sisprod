@@ -8,20 +8,26 @@ use:
 > python contrib/env_gen.py
 
 """
+
 import random
 
-chars = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ!?@#$%^&*()"
-size = 50
-secret_key = "".join(random.sample(chars, size))
+CHARS = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ!?@#$%^&*()"
+SIZE = 50
+SECRET_KEY = "".join(random.sample(CHARS, SIZE))
 
-chars = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ!?@#$%_"
-size = 20
-password = "".join(random.sample(chars, size))
+CHARS = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ!?@#$%_"
+SIZE = 20
+PASSWORD = "".join(random.sample(CHARS, SIZE))
+
+CHARS = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ!?@#$%_"
+SIZE = 8
+PASSWORD_ADMIN = "".join(random.sample(CHARS, SIZE))
 
 CONFIG_STRING = """
 DEBUG=True
 SECRET_KEY=%s
 ALLOWED_HOSTS=127.0.0.1,.localhost,0.0.0.0
+CSRF_TRUSTED_ORIGINS=http://localhost
 #DATABASE_URL=postgres://USER:PASSWORD@HOST:PORT/NAME
 #POSTGRES_DB=
 #POSTGRES_USER=
@@ -34,11 +40,16 @@ ALLOWED_HOSTS=127.0.0.1,.localhost,0.0.0.0
 #EMAIL_HOST_USER=
 #EMAIL_HOST_PASSWORD=
 #EMAIL_USE_TLS=True
-""".strip() % (secret_key, password)
+PASSWORD_ADMIN=%s
+""".strip() % (
+    SECRET_KEY,
+    PASSWORD,
+    PASSWORD_ADMIN,
+)
 
 # Writing our configuration file to '.env'
-with open('.env', 'w') as configfile:
+with open(".env", "w", encoding="utf-8") as configfile:
     configfile.write(CONFIG_STRING)
 
-print('Success!')
-print('Type: cat .env')
+print("Success!")
+print("Type: cat .env")

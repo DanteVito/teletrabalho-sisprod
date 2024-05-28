@@ -1,0 +1,91 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2 class="title is-2">Avaliações</h2>
+
+<h3 class="title is-4">Avaliações Pendentes</h3>
+
+<table class="table is-striped is-hoverable">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Ano</th>
+            <th>Mês</th>
+            <th>Unidade</th>
+            <th>Setor</th>
+            <th>Servidor</th>
+            <th>Função</th>
+            <th>Posto de Trabalho</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for avaliacao in avaliacoes %}
+            {% if not avaliacao.atestado_cumprimento_metas %}
+                <tr>
+                    <td>{{ avaliacao.id }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.unidade }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.setor }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.funcao }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho }}</td>
+                </tr>
+            {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
+
+<h3 class="title is-4">Avaliações Realizadas</h3>
+
+<table class="table is-striped is-hoverable">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Ano</th>
+            <th>Mês</th>
+            <th>Unidade</th>
+            <th>Setor</th>
+            <th>Servidor</th>
+            <th>Função</th>
+            <th>Posto de Trabalho</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for avaliacao in avaliacoes %}
+            {% if avaliacao.atestado_cumprimento_metas %}
+                <tr>
+                    <td><a href={% url "webapp:avaliacao_atividades_list" avaliacao.pk %}>{{ avaliacao.id }}</a></td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.unidade }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.setor }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.servidor }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.funcao }}</td>
+                    <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.posto_trabalho }}</td>
+                </tr>
+            {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
+
+<ul>
+    {% for avaliacao in avaliacoes %}
+        {% if not avaliacao.atestado_cumprimento_metas %}
+            <li>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}/{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }} - <a href="{% url 'webapp:avaliacao_atividades_list' avaliacao.pk %}">{{ avaliacao }}</a></li>    
+        {% endif %}
+    {% endfor %}
+</ul>
+
+<h3>Avaliações Realizadas</h3>
+<ul>
+    {% for avaliacao in avaliacoes %}
+        {% if avaliacao.atestado_cumprimento_metas %}
+            <li>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}/{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }} - <a href="{% url 'webapp:avaliacao_atividades_list' avaliacao.pk %}">{{ avaliacao }} - {{ avaliacao.atestado_cumprimento_metas }}</a></li>    
+        {% endif %}
+    {% endfor %}
+</ul>
+{% endblock%}

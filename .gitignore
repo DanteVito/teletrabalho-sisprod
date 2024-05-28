@@ -9,9 +9,6 @@ gunicorn-error-log
 # media files
 media/
 
-# static files
-static/
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

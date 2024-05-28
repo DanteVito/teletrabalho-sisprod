@@ -1,0 +1,55 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+<div class="content">
+
+    <h2 class="title is-2">CIGT - Portarias DOE </h2>
+
+    <div class="field">
+        <div class="control">
+            <button class="button is-light">
+                <a href="{% url "webapp:gerar_portaria_doe" %}">Gerar Nova Portaria DOE</a>
+            </button>
+        </div>
+    </div>
+
+    
+    
+    <h3 class="title is-4">Portarias Geradas</h3>
+    
+    <table class="table is-striped is-hoverable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Ano (REPR)</th>
+                <th>Número (REPR)</th>
+                <th>Data Publicação (DOE)</th>
+                <th>Inclusões?</th>
+                <th>Exclusões?</th>
+                <th>Editar</th>
+                <th>Docx</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for portaria in portarias %}
+                <tr>
+                    <td>{{ portaria.id }}</td>
+                    <td>{{ portaria.ano }}</td>
+                    <td>{{ portaria.numero }}</td>
+                    <td>{{ portaria.data_publicacao }}</td>
+                    <td>{{ portaria.has_inclusoes }}</td>
+                    <td>{{ portaria.has_exclusoes }}</td>
+                    <td><a href="{% url 'webapp:cigt_portaria_doe_edit' portaria.pk %}">{% if portaria.data_publicacao %}EDITAR{% else %}CADASTRAR DOE{% endif %}</a></td>
+                    <td><a href="{% url 'webapp:download_portaria_doe' portaria.pk %}">{% if portaria.docx %}Baixar{% else %}[-]{% endif %}</a></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    
+    
+</div>
+
+{% endblock %}

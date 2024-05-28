@@ -1,0 +1,37 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+<div class="content">
+
+    <h2 class="title is-2">CIGT - Analisar Planos de Trabalho </h2>
+    
+    <h3 class="title is-4">Planos de Trabalho Cadastrados</h3>
+    
+    <table class="table is-striped is-hoverable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Posto de Trabalho</th>
+                <th>Servidor</th>
+                <th>Aprovado (Chefia)</th>
+                <th>Analisar (CIGT)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for plano_trabalho in planos_trabalho %}
+                <tr>
+                    <td><a href={% url "webapp:download_docx" "plano-trabalho" plano_trabalho.id %}>{{ plano_trabalho.id }}</a></td>
+                    <td>{{ plano_trabalho.manifestacao.lotacao_servidor.posto_trabalho }}</td>
+                    <td>{{ plano_trabalho.manifestacao.lotacao_servidor.servidor }}</td>
+                    <td>{% if plano_trabalho.aprovado_chefia == 'aprovado' %}ACEITO{% elif plano_trabalho.aprovado_chefia == 'reprovado' %}NÃO ACEITO{% else %}PENDENTE{% endif %}</td>
+                    <td>{% if plano_trabalho.aprovado_cigt == 'aprovado' %}ACEITO{% elif plano_trabalho.aprovado_cigt == 'reprovado' %}NÃO ACEITO{% else %}{% if plano_trabalho.aprovado_chefia == 'aprovado' %}<a href={% url 'webapp:plano_trabalho_aprovado_cigt' plano_trabalho.pk %}>ANALISAR</a>{% else %}X{% endif %}{% endif %}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>  
+    
+</div>
+
+{% endblock %}

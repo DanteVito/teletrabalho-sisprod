@@ -1,0 +1,3 @@
+{% for atividade in atividades_teletrabalho %}
+    <p><a href="{% url 'webapp:atividade_teletrabalho' atividade.pk %}">{{ atividade }} - período_id: {{ atividade.periodo_id }} - atividade_id {{ atividade.id }}</a> - <a href="{% url 'webapp:atividade_teletrabalho_delete' atividade.pk %}">excluir</a></p>
+{% endfor %}

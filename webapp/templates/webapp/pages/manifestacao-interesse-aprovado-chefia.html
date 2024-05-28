@@ -4,16 +4,52 @@
 
 {% block content %}
 
-<h2>Aprovar Manifestacação de Interesse</h2>
+<h2 class="title is-2">Chefia - Analisar Manifestacão de Interesse</h2>
 
-<h3>{{ manifestacao}}</h3>
+<div class="field">
+    <label class="label">Servidor</label>
+    <div class="control">
+        <div class="select">{{ form_instance_lotacao.servidor }}</div>
+    </div>
+</div>
 
-{{ form_instance.as_p }}
+<div class="field">
+    <label class="label">Posto de Trabalho</label>
+    <div class="control">
+        <div class="select">{{ form_instance_lotacao.posto_trabalho }}</div>
+    </div>
+</div>
+
+<div class="field">
+    <label class="label">Chefia Imediata</label>
+    <div class="control">
+        {{ chefia_imediata }}
+    </div>
+</div>
+
+<hr>
 
 <form method="POST">
     {% csrf_token %}
-    {{ form.as_p }}
-    <input type="submit" value="SALVAR">
+
+    <div class="field">
+        {{ form.justificativa_chefia }}
+    </div>
+
+    <div class="field">
+        <label class="label">Aceitar/Recusar ?</label>
+        <div class="control">
+            <div class="select">{{ form.aprovado_chefia }}</div>
+        </div>
+    </div>
+
+    <hr>
+
+    <div class="field">
+        <div class="control">
+            <button class="button is-light">Salvar</button>
+        </div>
+    </div>
 
 </form>
 

@@ -6,11 +6,11 @@
 
 {% if tipo_form == 'create' %}
 
-<h2>Criar Nova Manifestacão de Interesse</h2>
+<h2 class="title is-2">Criar Manifestacão de Interesse</h2>
 
 {% elif tipo_form == 'edit' %}
 
-<h2>Editar Nova Manifestacão de Interesse</h2>
+<h2 class="title is-2">Editar Manifestacão de Interesse</h2>
 
 {{ request.user.name }}
 
@@ -18,8 +18,26 @@
 
 <form method="POST">
     {% csrf_token %}
-    {{ form.as_p }}
-    <input type="submit" value="SALVAR">
+
+    <div class="field">
+        <label class="label">Servidor</label>
+        <div class="control">
+            <div class="select">{{ form.servidor }}</div>
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Posto de Trabalho</label>
+        <div class="control">
+            <div class="select">{{ form.posto_trabalho }}</div>
+        </div>
+    </div>
+
+    <div class="field">
+        <div class="control">
+            <button class="button is-light">Salvar</button>
+        </div>
+    </div>
 
 </form>
 

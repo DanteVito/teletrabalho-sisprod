@@ -1,0 +1,56 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+{% if tipo_form == 'create' %}
+
+<h2 class="title is-2">Criar Manifestacão de Interesse</h2>
+
+{% elif tipo_form == 'edit' %}
+
+<h2 class="title is-2">Editar Manifestacão de Interesse</h2>
+
+{{ request.user.name }}
+
+{% endif %}
+
+<form method="POST">
+    {% csrf_token %}
+
+    <div class="field">
+        <label class="label">Ano (REPR)</label>
+        <div class="control">
+            {{ form.ano }}
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Número (REPR)</label>
+        <div class="control">
+            {{ form.numero }}
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Diretor (REPR)</label>
+        <div class="control">
+            {{ form.diretor_em_exercicio }}
+        </div>
+    </div>
+
+    <div class="field">
+        <label for="" class="label">Data de Publicação (DOE)</label>
+            {{ form.data_publicacao }}
+    </div>
+    
+    <div class="field">
+        <div class="control">
+            <button class="button is-light">Salvar</button>
+        </div>
+    </div>
+
+</form>
+
+{% endblock%}

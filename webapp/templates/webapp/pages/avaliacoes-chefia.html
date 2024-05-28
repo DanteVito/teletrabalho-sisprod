@@ -10,7 +10,7 @@
 <ul>
     {% for avaliacao in avaliacoes_chefia %}
         {% if not avaliacao.atestado_cumprimento_metas %}
-            <li>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}/{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }} - <a href="{% url 'webapp:avaliacao_chefia_edit' avaliacao.pk %}">{{ avaliacao }}</a></li>    
+            <li>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}/{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }} - <a href="{% url 'webapp:avaliacao_atividades_list' avaliacao.pk %}">{{ avaliacao }}</a></li>    
         {% endif %}
     {% endfor %}
 </ul>
@@ -19,7 +19,7 @@
 <ul>
     {% for avaliacao in avaliacoes_chefia %}
         {% if avaliacao.atestado_cumprimento_metas %}
-            <li>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}/{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }} - <a href="{% url 'webapp:avaliacao_chefia_edit' avaliacao.pk %}">{{ avaliacao }}</a></li>    
+            <li>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}/{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }} - <a href="{% url 'webapp:avaliacao_atividades_list' avaliacao.pk %}">{{ avaliacao }} - {{ avaliacao.atestado_cumprimento_metas }}</a></li>    
         {% endif %}
     {% endfor %}
 </ul>

@@ -4,23 +4,104 @@
 
 {% block content %}
 
-<h2>Dados Cadastrais</h2>
+<h2 class="title is-2">Dados Cadastrais</h2>
 
-NOME: {{ request.user.nome}}
+<div class="field">
+    <label for="" class="label">Grupos do Usuário</label>
+    {% for group in user_groups %}{{ group.name }} | {% endfor %}
+</div>
 
-CPF: {{ request.user.username}}
+<div class="field">
+    <label class="label">Nome</label>
+    <div class="control">
+        <input type="text" class="input" value="{{ request.user.nome}}" disabled>
+    </div>
+</div>
 
-RG: {{ request.user.rg}}
+<div class="field">
+    <label class="label">CPF</label>
+    <div class="control">
+        <input type="text" class="input" value="{{ request.user.username}}" disabled>
+    </div>
+</div>
 
-CARGO: {{ request.user.cargo}}
+<div class="field">
+    <label class="label">RG</label>
+    <div class="control">
+        <input type="text" class="input" value="{{ request.user.rg}}" disabled>
+    </div>
+</div>
 
 <form method="POST">
     {% csrf_token %}
-    {{ form.as_p }}
-    <input type="submit" value="Atualizar">
+
+    <div class="field">
+        <label class="label">Usuário</label>
+        <div class="control">
+            <div class="select">{{ form_servidor.user }}</div>
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Cargo</label>
+        <div class="control">
+            <div class="select">{{ form_servidor.cargo }}</div>
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Lotação Atual</label>
+        <p>Data Início: {{ ultima_lotacao.data_inicio }}</p>
+        <p>Data Fim: {{ ultima_lotacao.data_fim }}</p>
+        <p>Posto de Trabalho: {{ ultima_lotacao.posto_trabalho }}</p>
+    </div>
+
+    <div class="field">
+        <label for="" class="label">Ramal</label>
+        <div class="control">
+            {{ form_servidor.ramal }}
+        </div>
+        {% if not form_servidor.ramal.initial %}
+            <p class="help is-danger">Preencha esse campo!</p>
+        {% endif %}
+    </div>
+
+    <div class="field">
+        <label for="" class="label">Celular</label>
+        <div class="control">
+            {{ form_servidor.celular }}
+        </div>
+        {% if not form_servidor.celular.initial %}
+            <p class="help is-danger">Preencha esse campo!</p>
+        {% endif %}
+    </div>
+
+    <div class="field">
+        <label for="" class="label">E-mail</label>
+        <div class="control">
+            {{ form_servidor.email }}
+        </div>
+        {% if not form_servidor.email.initial %}
+            <p class="help is-danger">Preencha esse campo!</p>
+        {% endif %}
+    </div>
+
+    <div class="field">
+        <label for="" class="label">Cidade</label>
+        <div class="control">
+            {{ form_servidor.cidade }}
+        </div>
+        {% if not form_servidor.cidade.initial %}
+            <p class="help is-danger">Preencha esse campo!</p>
+        {% endif %}
+    </div>
+
+    <div class="field">
+        <div class="control">
+            <button class="button is-light">Atualizar</button>
+        </div>
+    </div>
 
 </form>
-Grupos:
-{% for group in user_groups %}{{ group.name }} | {% endfor %}
 
 {% endblock%}

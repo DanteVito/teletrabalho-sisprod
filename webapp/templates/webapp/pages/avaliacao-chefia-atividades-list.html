@@ -1,0 +1,76 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2 class="title is-2">Chefia Imediata - Avaliação Mensal </h2>
+
+<table class="table is-striped is-hoverable">
+    <thead>
+        <tr>
+            <th>Ano</th>
+            <th>Mês</th>
+            <th>Servidor</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>{{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}</td>
+            <td>{{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }}</td>
+            <td>{{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 class="title is-4">Atividades</h3>
+
+<form method="POST">
+    {% csrf_token %}
+
+    <table class="table is-striped is-hoverable">
+        <thead>
+            <tr>
+                <th>Atividade</th>
+                <th>Meta Quantitativa</th>
+                <th>Cumprimento</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for atividade, form_atividade in atividades_e_forms %}
+            <tr>
+                <td>{{ atividade }}</td>
+                <td>{{ atividade.meta_quantitativa }}</td>
+                <td>{{ form_atividade.cumprimento }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if user_chefia %}
+
+    <div class="field">
+        <label class="checkbox">
+          {{ form.finalizar_avaliacao }} Finalizar Avaliação
+        </label>
+    </div>
+    
+        <div class="field">
+            <div class="control">
+                <button class="button is-light">Finalizar Avaliação</button>
+            </div>
+        </div>
+    {% endif %}
+</form>
+
+<h3 class="title is-3">Histórico de Alterações</h3>
+
+{% for alteracao in alteracoes_avaliacao %}
+    <p>{{ alteracao.avaliacao_chefia.encaminhamento_avaliacao_cigt.mes_avaliacao }}/{{ alteracao.avaliacao_chefia.encaminhamento_avaliacao_cigt.ano_avaliacao }}</p>
+    <p>{{ alteracao.justificativa }}</p>
+    <p>adicionado por: {{ alteracao.adicionado_por }}</p>
+    <p>{{ alteracao.data_criacao }}</p>
+{% endfor %}
+
+
+{% endblock%}

@@ -1,0 +1,32 @@
+<div id="atividade-{{ forloop.counter0 }}">
+    <div class="field">
+        {{ form.periodo }}
+    </div>
+    
+    <div class="field">
+        <label class="label">Atividade</label>
+        <div class="control">
+            <div class="select">{{ form.atividade }}</div>
+        </div>
+    </div>
+
+    <div class="field">
+        <label for="" class="label">Meta Qualitativa</label>
+        <div class="control">
+            {{ form.meta_qualitativa }}
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Tipo de Meta Quantitativa</label>
+        <div class="control">
+            <div class="select">{{ form.tipo_meta_quantitativa }}</div>
+        </div>
+    </div>
+
+    <div class="field">
+        <label for="" class="label">Meta Quantitativa</label>
+        <div class="control">
+            {{ form.meta_quantitativa }}
+        </div>
+</div>

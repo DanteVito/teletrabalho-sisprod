@@ -4,17 +4,70 @@
 
 {% block content %}
 
-<h2>Aprovar Plano de Trabalho - CHEFIA</h2>
 
-<h3>{{ plano_trabalho }}</h3>
+<h2 class="title is-2">Chefia - Analisar Plano de Trabalho</h2>
 
-{{ form_instance.as_p }}
+    <div class="field">
+        <label class="label">Manifestação de Interesse</label>
+        <div class="control">
+            <div class="select">{{ form_instance.manifestacao }}</div>
+        </div>
+    </div>
 
-<form method="POST">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <input type="submit" value="SALVAR">
+    <div class="field">
+        <label class="label">Período de Comparecimento</label>
+        <div class="control">
+            {{ form_instance.periodo_comparecimento }}
+        </div>
+    </div>
 
-</form>
+    <div class="field">
+        <label class="label">Período de Acionamento</label>
+        <div class="control">
+            {{ form_instance.periodo_acionamento }}
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Sistemas</label>
+        <div class="control">
+          <div class="select is-multiple">{{ form_instance.sistemas }}</div>
+        </div>
+      </div>
+
+    <h4 class="title is-6">Período(s)</h4>
+
+    <hr>
+    
+    {% for periodo in periodos_teletrabalho %}
+        <p><a href="{% url 'webapp:periodo_teletrabalho' periodo.pk %}">{{ periodo }} plano_trabalho_id: {{ periodo.plano_trabalho_id }} período_id: {{ periodo.id}}</a> - <a href="{% url 'webapp:periodo_teletrabalho_delete' periodo.pk %}">excluir</a></p>
+        {% endfor %}
+
+    <hr>
+
+    <h4 class="title is-6">Atividades</h4>
+
+    {% for atividade in atividades_teletrabalho %}
+    <p><a href="{% url 'webapp:atividade_teletrabalho' atividade.pk %}">{{ atividade }} - período_id: {{ atividade.periodo_id }} - atividade_id {{ atividade.id }}</a> - <a href="{% url 'webapp:atividade_teletrabalho_delete' atividade.pk %}">excluir</a></p>
+    {% endfor %}
+
+    <hr>
+    <form method="POST">
+        {% csrf_token %}
+
+        <div class="field">
+            <label class="label">Aprovado</label>
+            <div class="control">
+                <div class="select">{{ form.aprovado_chefia }}</div>
+            </div>
+        </div>
+        
+        <div class="field">
+            <div class="control">
+                <button class="button is-light">Salvar</button>
+            </div>
+        </div>
+
+    </form>
 
 {% endblock%}

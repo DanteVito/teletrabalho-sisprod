@@ -1,0 +1,38 @@
+{% extends 'webapp/base/base.html' %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+<div class="content">
+
+    <h2 class="title is-2">CIGT - 
+        Protocolos de Autorização do Teletrabalho </h2>
+    
+    <h3 class="title is-4">Protocolos Autorizativos</h3>
+    
+    <table class="table is-striped is-hoverable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Despacho CIGT</th>
+                <th>Publicado DOE</th>
+                <th>SID</th>
+                <th>Volume</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for protocolo in protocolos %}
+                <tr>
+                    <td><a href={% url "webapp:download_docx" "protocolo-autorizacao" protocolo.id %}>{{ protocolo.id }}</a></td>
+                    <td><a href={% url "webapp:download_docx" "despacho-cigt-plano-trabalho" protocolo.despacho_cigt.id %}>{{ protocolo.despacho_cigt }}</a></td>
+                    <td>{{ protocolo.publicado_doe }}</td>
+                    <td><a href="{% url 'webapp:protocolo_autorizacao_teletrabalho_edit' protocolo.pk %}">{% if protocolo.sid %}{{ protocolo.sid }}{% else %}CADASTRAR{% endif %}</a></td>
+                    <td><a href={% url 'webapp:download_docx' "volume" protocolo.despacho_cigt.id %}>baixar</a></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>    
+    
+</div>
+
+{% endblock %}

@@ -5,3 +5,4 @@ docxtpl
 prettytable
 gunicorn
 unidecode
+django-apscheduler

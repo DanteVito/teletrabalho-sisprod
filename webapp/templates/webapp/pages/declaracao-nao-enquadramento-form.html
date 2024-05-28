@@ -6,18 +6,51 @@
 
 {% if tipo_form == 'create' %}
 
-<h2>Criar Nova Declaração de Não Enquadramento nas Vedações Legais</h2>
+<h2 class="title is-2">Criar Declaração de Não Enquadramento nas Vedações Legais</h2>
 
 {% elif tipo_form == 'edit' %}
 
-<h2>Editar Declaração de Não Enquadramento nas Vedações Legais</h2>
+<h2 class="title is-2">Editar Declaração de Não Enquadramento nas Vedações Legais</h2>
 
 {% endif %}
 
 <form method="POST">
     {% csrf_token %}
-    {{ form.as_p }}
-    <input type="submit" value="SALVAR">
+
+    <div class="field">
+        <label class="label">Manifestação de Interesse</label>
+        <div class="control">
+            <div class="select">{{ form.manifestacao }}</div>
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="checkbox">
+            {{ form.estagio_probatorio }} Não estou em estágio probatório.
+          </label>
+    </div>
+
+    <div class="field">
+        <label class="checkbox">
+          {{ form.cargo_chefia_direcao }} Não ocupo cargo de chefia ou direção.
+        </label>
+    </div>
+
+    <div class="field">
+        <label class="checkbox">
+          {{ form.penalidade_disciplinar }} Não sofri penalidade disciplinar nos últimos 12 meses.
+        </label>
+    </div>
+    
+    <div class="field">
+        {{ form.justificativa_excecao}}
+    </div>
+
+    <div class="field">
+        <div class="control">
+            <button class="button is-light">Salvar</button>
+        </div>
+    </div>
 
 </form>
 

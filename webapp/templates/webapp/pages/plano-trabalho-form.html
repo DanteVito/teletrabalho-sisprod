@@ -1,46 +1,236 @@
 {% extends 'webapp/base/base.html' %}
 
+{% load static %}
+
+
 {% block title%}Home{% endblock%}
 
 {% block content %}
 
 {% if tipo_form == 'create' %}
 
-<h2>Criar Plano de Trabalho</h2>
+<h2 class="title is-2">Criar Plano de Trabalho</h2>
 
 {% elif tipo_form == 'edit' %}
 
-<h2>Editar Plano de Trabalho</h2>
-
-{{ request.user.name }}
+<h2 class="title is-2">Editar Plano de Trabalho</h2>
 
 {% endif %}
 
 <form method="POST">
     {% csrf_token %}
+    <div class="field">
+        <label class="label">Manifestação de Interesse</label>
+        <div class="control">
+            <div class="select">{{ form.manifestacao }}</div>
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Período de Comparecimento</label>
+        <div class="control">
+            {{ form.periodo_comparecimento }}
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Período de Acionamento</label>
+        <div class="control">
+            {{ form.periodo_acionamento }}
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Sistemas</label>
+        <div class="control">
+            <div class="select is-multiple">{{ form.sistemas }}</div>
+        </div>
+    </div>
+
+
+    <h4 class="title is-5">Período(s)</h4>
+
+    {% if tipo_form == 'create' %}
+    {{ periodos_formset.management_form }}
+
+    <!-- htmx -->
+
+    <div id="periodos">
+        {% for form in periodos_formset %}
+            <div id="periodo-{{ forloop.counter0 }}">
+                <div class="field is-horizontal">
+                    <div class="field-body">
+                        <div class="field" hidden>
+                            <label class="label">
+                                Plano de Trabalho
+                            </label>
+                            {{ form.plano_trabalho }}
+                        </div>
+        
+                        <div class="field">
+                            <label class="label">Data Inicial</label>
+                            {{ form.data_inicio }}
+                        </div>
+            
+                        <div class="field">
+                            <label class="label">Data Final</label>
+                            <div class="control">
+                            {{ form.data_fim }}
+                            </div>
+                        </div>
+                </div>
+                </div>
+
+            </div>
+        {% endfor %}
+    </div>
+    <hr>
+    <a onclick="adiciona_periodo()" id="buttonAddPeriodo" hx-get={% url "webapp:htmx_adiciona_periodo" %} hx-target="#periodos" hx-swap="beforeend">Adicionar Período</a>
+    <hr>
+
+    <ul id="periodos-adicionados"></ul>
+    <hr>
+        
+    {% elif tipo_form == 'edit' %}
+
+        <h3 class="title is-5"> Períodos </h3>
+        <div id="periodos-atividades-edit" class="periodos-atividades-edit">
+            {% for periodo in periodos_teletrabalho %}
+                <p><a href="{% url 'webapp:periodo_teletrabalho' periodo.pk %}">{{ periodo }} plano_trabalho_id: {{ periodo.plano_trabalho_id }} período_id: {{ periodo.id}}</a> - <a href="{% url 'webapp:periodo_teletrabalho_delete' periodo.pk %}">excluir</a></p>
+            {% endfor %}
+
+            <hr>
+            
+            <h3 class="title is-5"> Atividades </h3>
+            {% for atividade in atividades_teletrabalho %}
+            <p><a href="{% url 'webapp:atividade_teletrabalho' atividade.pk %}">{{ atividade }} - período_id: {{ atividade.periodo_id }} - atividade_id {{ atividade.id }}</a> - <a href="{% url 'webapp:atividade_teletrabalho_delete' atividade.pk %}">excluir</a></p>
+            {% endfor %}
+        </div>
+
+        <hr>
+
+        <h3 class="title is-5"> Incluir Período </h3>
+
+        <div class="field">
+            {{ form_add_periodo.plano_trabalho }}
+        </div>
+        <div class="field">
+            <label class="label">Data Inicial</label>
+            {{ form_add_periodo.data_inicio }}
+        </div>
+
+        <div class="field">
+            <label class="label">Data Final</label>
+            <div class="control">
+            {{ form_add_periodo.data_fim }}
+            </div>
+        </div>
+
     
-    <h3>Plano Trabalho</h3>
-    {{ form.as_p }}
-    <h4>Período</h4>
-    {% if tipo_form == 'create' %}
-        {{ periodos_formset }}
-    {% elif tipo_form == 'edit' %}
-        {% for periodo in periodos_teletrabalho %}
-        <p><a href="{% url 'webapp:periodo_teletrabalho' periodo.plano_trabalho_id %}">{{ periodo }}</a> - <a href="{% url 'webapp:periodo_teletrabalho_delete' periodo.pk %}">excluir</a></p>
-        {% endfor %}
+    <a id="buttonAddPeriodo" hx-post={% url 'webapp:htmx_adiciona_periodo_edit' plano_trabalho.pk %} hx-target="#periodos-atividades-edit" hx-swap="outerHTML">Adicionar Período</a>
+
+    <hr>
+
+    <h3 class="title is-5"> Incluir Atividade </h3>
+
+    <div class="field">
+        {{ form_add_atividade.periodo }}
+    </div>
+    
+    <div class="field">
+        <label class="label">Atividade</label>
+        <div class="control">
+            <div class="select">{{ form_add_atividade.atividade }}</div>
+        </div>
+    </div>
+
+    <div class="field">
+        <label for="" class="label">Meta Qualitativa</label>
+        <div class="control">
+            {{ form_add_atividade.meta_qualitativa }}
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Tipo de Meta Quantitativa</label>
+        <div class="control">
+            <div class="select">{{ form_add_atividade.tipo_meta_quantitativa }}</div>
+        </div>
+    </div>
+
+    <div class="field">
+        <label for="" class="label">Meta Quantitativa</label>
+        <div class="control">
+            {{ form_add_atividade.meta_quantitativa }}
+        </div>
+    </div>
+
+        <a id="buttonAddAtividade" hx-post={% url 'webapp:htmx_adiciona_atividade_edit' plano_trabalho.pk %} hx-target="#periodos-atividades-edit" hx-swap="outerHTML">Adicionar Atividade</a>
+    
     {% endif %}
 
-    <h4>Atividades</h4>
     {% if tipo_form == 'create' %}
-        {{ atividades_formset }}
-    {% elif tipo_form == 'edit' %}
-        {% for atividade in atividades_teletrabalho %}
-        <p><a href="{% url 'webapp:atividade_teletrabalho' atividade.plano_trabalho_id %}">{{ atividade }}</a>- <a href="{% url 'webapp:atividade_teletrabalho_delete' atividade.pk %}">excluir</a></p>
-        {% endfor %}
+
+    <div id="atividades">
+        {{ atividades_formset.management_form }}
+        {% for form in atividades_formset %}
+                <div id="atividade-{{ forloop.counter0 }}">
+                    <div class="field">
+                        <label class="label">Atividade</label>
+                        <div class="control">
+                            <div class="select">{{ form.atividade }}</div>
+                        </div>
+                    </div>
+        
+                    <div class="field">
+                        <label for="" class="label">Meta Qualitativa</label>
+                        <div class="control">
+                            {{ form.meta_qualitativa }}
+                        </div>
+                    </div>
+        
+                    <div class="field">
+                        <label class="label">Tipo de Meta Quantitativa</label>
+                        <div class="control">
+                            <div class="select">{{ form.tipo_meta_quantitativa }}</div>
+                        </div>
+                    </div>
+        
+                    <div class="field">
+                        <label for="" class="label">Meta Quantitativa</label>
+                        <div class="control">
+                            {{ form.meta_quantitativa }}
+                        </div>
+                    </div>
+            </div>
+            {% endfor %}
+        </div>
+        <hr>
+        <a onclick="adiciona_atividade()" id="buttonAddAtividade" hx-get={% url "webapp:htmx_adiciona_atividade" %} hx-target="#atividades" hx-swap="beforeend">Adicionar Atividade</a>
+    </div>
+
+
+    <ul id="atividades-adicionadas"></ul>
+    
     {% endif %}
 
-    <input type="submit" value="SALVAR">
+    <hr>
+
+    <div class="field">
+        <div class="control">
+            <button class="button is-light" onclick="reorderItems()">Salvar</button>
+        </div>
+    </div>
 
 </form>
 
 {% endblock%}
+
+{% block js%}
+
+    <script
+        src="{% static 'webapp/js/main.js' %}"
+        defer
+    ></script>
+
+{% endblock js %}

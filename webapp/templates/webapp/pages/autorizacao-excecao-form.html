@@ -4,13 +4,47 @@
 
 {% block content %}
 
-<h2>Autorização Exceção - Teletrabalho - Cargo Chefia ou Direção</h2>
+<h2 class="title is-2">Autorização Exceção - Teletrabalho - Cargo Chefia ou Direção</h2>
 
+<div class="field">
+    <label class="label">Declaração de Não Enquadramento nas Vedações</label>
+    <div class="control">
+        <div class="select">{{ form_instance.declaracao }}</div>
+    </div>
+</div>
+
+<h4 class="title is-4">Justificativa:</h4>
+
+<p>{{ declaracao.justificativa_excecao}}</p>
+
+<br>
+
+{% comment %} unidade = models.ForeignKey(Unidade, related_name='%(app_label)s_%(class)s_unidade', on_delete=models.CASCADE, null=True)  # noqa E501
+setor = models.ForeignKey(Setor, related_name='%(app_label)s_%(class)s_setor', on_delete=models.CASCADE)  # noqa E501
+servidor = models.ForeignKey(User, related_name='%(app_label)s_%(class)s_servidor', on_delete=models.CASCADE)  # noqa E501
+funcao = models.CharField("Função", max_length=255)
+posto_trabalho = models.ForeignKey(PostosTrabalho, related_name='%(app_label)s_%(class)s_posto_trabalho_servidor', on_delete=models.CASCADE)  # noqa E501
+chefia_imediata = models.ForeignKey(User, related_name='%(app_label)s_%(class)s_chefia_imediata', on_delete=models.CASCADE)  # noqa E501
+funcao_chefia = models.CharField("Função Chefia Imediata", max_length=255)
+posto_trabalho_chefia = models.ForeignKey(PostosTrabalho, related_name='%(app_label)s_%(class)s_posto_trabalho_chefia', on_delete=models.CASCADE)  # noqa E501
+aprovado_chefia = models.CharField(
+    choices=_APROVACAO, max_length=16, null=True, blank=True)
+justificativa_chefia = models.TextField() {% endcomment %}
 
 <form method="POST">
     {% csrf_token %}
-    {{ form.as_p }}
-    <input type="submit" value="Atualizar">
+    <div class="field">
+        <label class="label">Aceitar/Recusar?</label>
+        <div class="control">
+            <div class="select">{{ form.aprovado_gabinete }}</div>
+        </div>
+    </div>
+    
+    <div class="field">
+        <div class="control">
+            <button class="button is-light">Salvar</button>
+        </div>
+    </div>
 
 </form>
 

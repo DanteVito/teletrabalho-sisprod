@@ -1,0 +1,48 @@
+{% extends 'webapp/base/base.html' %}
+
+{% load static %}
+
+{% block title%}Home{% endblock%}
+
+{% block content %}
+
+<h2 class="title is-2">Justificativa para alteração da Avaliação</h2>
+
+<p>SERVIDOR: {{ avaliacao.encaminhamento_avaliacao_cigt.despacho_cigt.plano_trabalho.manifestacao.lotacao_servidor.servidor }} </p>
+<p>ANO: {{ avaliacao.encaminhamento_avaliacao_cigt.ano_avaliacao }}</p>
+<p>MÊS: {{ avaliacao.encaminhamento_avaliacao_cigt.mes_avaliacao }}</p>
+<h3 class="title is-5">{{ atividade.atividade }}</h3>
+
+<form method="POST">
+    {% csrf_token %}
+
+    <div class="field">
+        <label class="label">Avaliação</label>
+        <div class="control">
+            <div class="select">{{ form.avaliacao_chefia }}</div>
+        </div>
+    </div>
+    
+
+    <div class="field">
+        {{ form.justificativa }}
+    </div>
+
+    <div class="field">
+        <div class="control">
+            <button class="button is-light" onclick="reorderItems()">Salvar</button>
+        </div>
+    </div>
+
+</form>
+
+{% endblock%}
+
+{% block js%}
+
+    <script
+        src="{% static 'webapp/js/main.js' %}"
+        defer
+    ></script>
+
+{% endblock js %}
