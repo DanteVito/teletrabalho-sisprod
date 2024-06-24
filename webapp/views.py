@@ -1071,6 +1071,77 @@ def servidor(request):
 
 
 @login_required
+def servidor_avaliacoes(request):
+    avaliacoes = AvaliacaoChefia.objects.filter(
+        encaminhamento_avaliacao_cigt__despacho_cigt__plano_trabalho__manifestacao__lotacao_servidor__servidor__user=request.user
+    )
+    context = {"avaliacoes": avaliacoes}
+    return render(request, "webapp/pages/servidor-avaliacoes.html", context)
+
+
+@login_required
+def servidor_avaliacao_atividades_list(request, pk):
+
+    avaliacoes = AvaliacaoChefia.objects.filter(
+        encaminhamento_avaliacao_cigt__despacho_cigt__plano_trabalho__manifestacao__lotacao_servidor__servidor__user=request.user
+    )
+
+    try:
+        avaliacao = avaliacoes.get(pk=pk)
+    except AvaliacaoChefia.DoesNotExist:
+        return HttpResponseBadRequest("proibido-chefia-imediata")
+
+    plano_trabalho = avaliacao.get_plano_trabalho()
+    periodo_para_avaliacao = avaliacao.get_periodo_para_avaliacao()
+
+    # problema -> periodo_para_avaliacao
+    # resolver: se o periodo for maior que um um mês, o filtro não vai retornar nada
+    # exemplo: periodo 1/1/2024 a 1/5/2024
+    # porque o período de avaliacao é sempre mensal
+    # pensar como resolver isso
+    #
+
+    # talvez para garantir as avaliações mensais devemos criar apenas períodos mensais
+    # se o usuário colocar um período maior que um mês, dividimos em meses e gravamos
+    # tudo para controlar por mês posteriormente.
+
+    ### SOLUÇÃO ###
+    # é só fazer uma validação para o usuário não conseguir colocar mais de um mês no form
+    # para cada entrada
+
+    periodos_para_avaliacao = avaliacao.get_periodos_para_avaliacao()
+    atividades_para_avaliacao = avaliacao.get_atividades_para_avaliacao()
+
+    form = AvaliacaoChefiaFinalizaForm(instance=avaliacao)
+
+    forms_cumprimento = [
+        AtividadeCumprimentoForm(instance=atividade)
+        for atividade in atividades_para_avaliacao
+    ]
+
+    atividades_e_forms = zip(atividades_para_avaliacao, forms_cumprimento)
+
+    context = {
+        "plano_trabalho": plano_trabalho,
+        "periodo_para_avaliacao": periodo_para_avaliacao,
+        "periodos_para_avaliacao": periodos_para_avaliacao,
+        "atividades_para_avaliacao": atividades_para_avaliacao,
+        "avaliacao": avaliacao,
+        "pk_avaliacao": pk,
+        "form": form,
+        "atividades_e_forms": atividades_e_forms,
+        "user_chefia": request.user.groups.filter(name="CHEFIAS"),
+        "alteracoes_avaliacao": AlterarAvaliacaoChefia.objects.filter(
+            avaliacao_chefia=avaliacao
+        ),
+    }
+
+    return render(
+        request, "webapp/pages/avaliacao-chefia-atividades-list.html", context
+    )
+
+
+@login_required
 def chefia_imediata(request):
     if request.user.groups.filter(name="CHEFIAS"):
         manifestacoes_servidor = ManifestacaoInteresse.objects.filter(

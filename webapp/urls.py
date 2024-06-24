@@ -168,6 +168,12 @@ urlpatterns = [
     ),
     # servidor
     path("servidor/", views.servidor, name="servidor"),
+    path("servidor-avaliacoes/", views.servidor_avaliacoes, name="servidor_avaliacoes"),
+    path(
+        "servidor-avaliacao-atividades-list/<int:pk>",
+        views.servidor_avaliacao_atividades_list,
+        name="servidor_avaliacao_atividades_list",
+    ),
     # chefia imediata
     path("chefia-imediata/", views.chefia_imediata, name="chefia_imediata"),
     # avaliar manifestacoes interesse
