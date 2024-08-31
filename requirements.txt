@@ -6,3 +6,5 @@ prettytable
 gunicorn
 unidecode
 django-apscheduler
+django-allauth
+requests_oauthlib

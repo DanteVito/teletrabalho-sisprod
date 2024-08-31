@@ -1,6 +1,7 @@
 """ authentication admin.py """
 
 from django.contrib import admin
+from allauth.account.decorators import secure_admin_login
 
 from .models import User
 
@@ -46,4 +47,5 @@ class UserAdmin(admin.ModelAdmin):
         return ("groups", "is_active", "is_superuser")
 
 
-admin.site.register(User, UserAdmin)
+admin.autodiscover()
+admin.site.login = secure_admin_login(admin.site.login)

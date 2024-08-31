@@ -10,6 +10,7 @@ urlpatterns = [
     path('', include('authentication.urls')),
     path('home/', include('webapp.urls')),
     path('media/<path:path>', views.secure_media, name='secure_media'),
+    path('accounts/', include('allauth.urls')),
 ]
 
 if settings.DEBUG:

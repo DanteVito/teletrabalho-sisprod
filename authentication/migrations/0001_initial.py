@@ -47,6 +47,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("nome", models.CharField(max_length=255, verbose_name="Nome")),
+                ("email", models.CharField(max_length=255, verbose_name="Email")),
                 ("rg", models.CharField(max_length=255, verbose_name="RG")),
                 (
                     "is_staff",

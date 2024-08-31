@@ -56,6 +56,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     """
 
     username = models.CharField("Usuário", max_length=255, unique=True)
+    email = models.CharField("Email", max_length=255, null=True)
     nome = models.CharField("Nome", max_length=255)
     rg = models.CharField("RG", max_length=255)
     is_staff = models.BooleanField(
@@ -64,7 +65,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text="Define se o usuário tem acesso ao admin",
     )
     is_active = models.BooleanField(
-        "Ativo", default=False, help_text="Define se o usuário ativou a conta no email"
+        "Ativo", default=True, help_text="Define se o usuário ativou a conta no email"
     )
     date_joined = models.DateTimeField("Criação", auto_now_add=True)
 

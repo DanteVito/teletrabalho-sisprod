@@ -29,10 +29,22 @@ INSTALLED_APPS = [
     "authentication",
     "render",
     "webapp",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "provider",
     # quando fizer a migração inicial
     # comente o scheduler
     "scheduler",
 ]
+AUTHENTICATION_BACKENDS = [
+    # Needed to login by username in Django admin, regardless of `allauth`
+    'django.contrib.auth.backends.ModelBackend',
+    # `allauth` specific authentication methods, such as login by email
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+SITE_ID = 1
+OAUTH_SERVER_BASEURL = 'http://receita.pr.gov.br'
 
 # custom user model
 AUTH_USER_MODEL = "authentication.User"
@@ -45,6 +57,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = "core.urls"
